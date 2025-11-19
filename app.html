@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1downpicker - Cinema Edition</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Oswald:wght@500;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Styles & Animations -->
+    <style>
+        :root {
+            --netflix-red: #E50914;
+            --dark-bg: #050505;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #f5f5f5;
+            overflow-x: hidden;
+        }
+
+        /* Cinematic Fonts */
+        .font-poster {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+        .font-handwritten {
+            font-family: 'Caveat', cursive;
+        }
+
+        /* Film Grain Overlay */
+        .film-grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            z-index: 5;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        @keyframes posterSlide {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes countdown {
+            0% { transform: scale(1.5); opacity: 0; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        .animate-poster {
+            animation: posterSlide 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .countdown-anim {
+            animation: countdown 0.8s linear infinite;
+        }
+
+        /* Utility */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center relative selection:bg-red-600 selection:text-white">
+
+    <!-- Film Grain Texture -->
+    <div class="film-grain"></div>
+
+    <!-- Background Spotlight -->
+    <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- Toast Notification -->
+    <div id="notification" class="fixed top-6 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-md font-poster tracking-wide shadow-2xl z-50 hidden flex items-center gap-2 transition-all duration-300 border-l-4 border-red-600">
+        <i data-lucide="check" class="w-4 h-4 text-red-600"></i>
+        <span id="notification-text">Notification</span>
+    </div>
+
+    <!-- Navigation -->
+    <div id="nav-controls" class="hidden w-full max-w-3xl fixed top-8 px-6 z-40 flex justify-between pointer-events-none">
+        <button id="btn-back" class="pointer-events-auto p-3 rounded-full bg-black/50 border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all backdrop-blur-sm hover:scale-105">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </button>
+        <button id="btn-home" class="pointer-events-auto p-3 rounded-full bg-black/50 border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all backdrop-blur-sm hover:scale-105">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- Cinema Modal -->
+    <div id="cinema-modal" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 hidden animate-fade-in">
+        <button id="close-cinema" class="absolute top-6 right-6 p-3 text-white/70 hover:text-white transition-colors z-[101]">
+            <span class="font-poster text-lg tracking-widest">CLOSE</span>
+        </button>
+        <div class="w-full max-w-5xl aspect-video bg-black shadow-2xl shadow-red-900/20 relative border border-white/10">
+            <div id="player-container" class="w-full h-full"></div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <main id="app-container" class="w-full max-w-md relative z-10 p-4">
+        <!-- Content injected here -->
+    </main>
+
+    <!-- Footer Branding -->
+    <div class="fixed bottom-6 w-full text-center z-20 pointer-events-none">
+        <div class="inline-flex flex-col items-center opacity-60">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Powered by Intelligence</p>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-white/50">Contributed by</span>
+                <span class="font-handwritten text-2xl text-red-500 rotate-[-5deg] block mt-1">1down.ai</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let firebaseConfig;
+        let appId = 'default-app-id';
+        let initialAuthToken = null;
+
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        }
+
+        let auth, db, user;
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            const initAuth = async () => {
+                if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
+                else await signInAnonymously(auth);
+            };
+            initAuth();
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                if (user) setupWatchlistListener();
+            });
+        }
+
+        const state = {
+            view: 'landing',
+            lang: null,
+            genre: null,
+            era: null,
+            recommendation: null,
+            watchlist: [],
+            history: [],
+            isAnimating: false,
+            countdownValue: 3
+        };
+
+        const languages = [
+            { id: 'english', label: 'English', native: 'EN', color: 'border-white/20' },
+            { id: 'telugu', label: 'Telugu', native: 'TE', color: 'border-white/20' },
+            { id: 'hindi', label: 'Hindi', native: 'HI', color: 'border-white/20' },
+            { id: 'kannada', label: 'Kannada', native: 'KA', color: 'border-white/20' },
+        ];
+
+        const genres = [
+            { id: 'action', label: 'Action', icon: 'swords' },
+            { id: 'comedy', label: 'Comedy', icon: 'laugh' },
+            { id: 'drama', label: 'Drama', icon: 'drama' }, /* Fixed icon from masks to drama */
+            { id: 'thriller', label: 'Thriller', icon: 'eye' },
+            { id: 'romance', label: 'Romance', icon: 'heart' },
+            { id: 'horror', label: 'Horror', icon: 'ghost' },
+        ];
+
+        const eras = [
+            { id: 'modern', label: 'Modern Era', sub: '2000 - Present', icon: 'zap' },
+            { id: 'classic', label: 'Golden Age', sub: 'Pre-2000', icon: 'disc' }
+        ];
+
+        // --- DATABASE (Fixed Trailer IDs) ---
+        const movies = [
+             // --- ENGLISH ---
+            { lang: 'english', genre: 'action', title: "Mad Max: Fury Road", year: 2015, rating: "8.1", trailerId: "hEJnMQG9ev8", desc: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler." },
+            { lang: 'english', genre: 'action', title: "The Matrix", year: 1999, rating: "8.7", trailerId: "vKQi3bBA1y8", desc: "A computer hacker learns the world is a simulation created by machines." },
+            { lang: 'english', genre: 'action', title: "Die Hard", year: 1988, rating: "8.2", trailerId: "jaJuwKCmJbY", desc: "An NYPD officer tries to save his wife taken hostage by German terrorists." },
+            { lang: 'english', genre: 'action', title: "Top Gun: Maverick", year: 2022, rating: "8.3", trailerId: "giXco2jaZ_4", desc: "After thirty years, Maverick is still pushing the envelope as a top naval aviator." },
+            { lang: 'english', genre: 'action', title: "Terminator 2: Judgment Day", year: 1991, rating: "8.6", trailerId: "lwSysg9o7wE", desc: "A cyborg, identical to the one who failed to kill Sarah Connor, must now protect her teenage son." },
+            { lang: 'english', genre: 'comedy', title: "Superbad", year: 2007, rating: "7.6", trailerId: "4eaZ_48ZYog", desc: "Two co-dependent high school seniors are forced to deal with separation anxiety." },
+            { lang: 'english', genre: 'comedy', title: "Airplane!", year: 1980, rating: "7.7", trailerId: "07pPmCfKi3U", desc: "A man afraid to fly must ensure that a plane lands safely after the pilots become sick." },
+            { lang: 'english', genre: 'comedy', title: "The Hangover", year: 2009, rating: "7.7", trailerId: "tlize92ffcY", desc: "Three buddies wake up from a bachelor party in Las Vegas, with no memory of the previous night." },
+            { lang: 'english', genre: 'drama', title: "The Godfather", year: 1972, rating: "9.2", trailerId: "sY1S34973zA", desc: "The aging patriarch of an organized crime dynasty transfers control to his reluctant son." },
+            { lang: 'english', genre: 'drama', title: "Oppenheimer", year: 2023, rating: "8.5", trailerId: "uYPbbksJxIg", desc: "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb." },
+            { lang: 'english', genre: 'drama', title: "Pulp Fiction", year: 1994, rating: "8.9", trailerId: "s7EdQ4FqbhY", desc: "The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption." },
+            { lang: 'english', genre: 'thriller', title: "Inception", year: 2010, rating: "8.8", trailerId: "YoHD9XEInc0", desc: "A thief who steals corporate secrets through dream-sharing technology." },
+            { lang: 'english', genre: 'thriller', title: "Se7en", year: 1995, rating: "8.6", trailerId: "znmZoVkCjpI", desc: "Two detectives, a rookie and a veteran, hunt a serial killer who uses the seven deadly sins as his motives." },
+            { lang: 'english', genre: 'thriller', title: "Gone Girl", year: 2014, rating: "8.1", trailerId: "2-_-1nJf8Vg", desc: "With his wife's disappearance having become the focus of an intense media circus, a man sees the spotlight turned on him." },
+            { lang: 'english', genre: 'romance', title: "Titanic", year: 1997, rating: "7.9", trailerId: "kVrqfYjkTdQ", desc: "A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the ill-fated ship." },
+            { lang: 'english', genre: 'romance', title: "The Notebook", year: 2004, rating: "7.8", trailerId: "FC6biTjEyZw", desc: "A poor yet passionate young man falls in love with a rich young woman, giving her a sense of freedom." },
+            { lang: 'english', genre: 'romance', title: "When Harry Met Sally...", year: 1989, rating: "7.7", trailerId: "vmSpCLefj8w", desc: "Harry and Sally meet when she gives him a ride to New York after they both graduate from the University of Chicago." },
+            { lang: 'english', genre: 'horror', title: "The Shining", year: 1980, rating: "8.4", trailerId: "S014oGZiSdI", desc: "A family heads to an isolated hotel for the winter where a sinister presence influences the father." },
+            { lang: 'english', genre: 'horror', title: "Alien", year: 1979, rating: "8.5", trailerId: "LjLamj-b0I8", desc: "The crew of a commercial spacecraft encounter a deadly lifeform after investigating an unknown transmission." },
+            { lang: 'english', genre: 'horror', title: "The Conjuring", year: 2013, rating: "7.5", trailerId: "k10ETZ41q5o", desc: "Paranormal investigators work to help a family terrorized by a dark presence in their farmhouse." },
+            { lang: 'english', genre: 'horror', title: "Hereditary", year: 2018, rating: "7.3", trailerId: "V6wWKNij_1M", desc: "A grieving family is haunted by tragic and disturbing occurrences." },
+            // --- TELUGU ---
+            { lang: 'telugu', genre: 'action', title: "RRR", year: 2022, rating: "7.8", trailerId: "NgBoMJy386M", desc: "A fearless revolutionary and an officer in the British force decide to join forces." },
+            { lang: 'telugu', genre: 'action', title: "Pokiri", year: 2006, rating: "8.0", trailerId: "oD7p6u1aXj4", desc: "A money-minded criminal joins a gang, but he has a hidden agenda." },
+            { lang: 'telugu', genre: 'action', title: "Shiva", year: 1989, rating: "8.6", trailerId: "6i61p9gQ6qE", desc: "A fresh college student stands against the violence in his college. A cult classic." },
+            { lang: 'telugu', genre: 'comedy', title: "Jathi Ratnalu", year: 2021, rating: "7.3", trailerId: "z8p4-h6zGf8", desc: "Three happy-go-lucky friends move to Hyderabad for a better life but get framed." },
+            { lang: 'telugu', genre: 'comedy', title: "Aha Naa Pellanta", year: 1987, rating: "8.9", trailerId: null, desc: "A man discovers his father's real identity and has to deal with a stingy rich man to marry his love." },
+            { lang: 'telugu', genre: 'comedy', title: "Chantabbai", year: 1986, rating: "8.0", trailerId: null, desc: "A bumbling private detective is tasked with finding a lost heir." },
+            { lang: 'telugu', genre: 'drama', title: "Mahanati", year: 2018, rating: "8.5", trailerId: "5Y8Wk-g12oQ", desc: "The biography of Savitri, an actress who ruled the South Indian film industry." },
+            { lang: 'telugu', genre: 'drama', title: "Mayabazar", year: 1957, rating: "9.1", trailerId: null, desc: "A classic mythological tale of Lord Krishna and Ghatotkacha." },
+            { lang: 'telugu', genre: 'drama', title: "Jersey", year: 2019, rating: "8.5", trailerId: "4F3yG5-6wY8", desc: "A failed cricketer decides to revive his cricketing career in his late 30s." },
+            { lang: 'telugu', genre: 'thriller', title: "Evaru", year: 2019, rating: "8.2", trailerId: "7F-fX9d2z6k", desc: "A sub-inspector investigates a high-profile murder case with twisting secrets." },
+            { lang: 'telugu', genre: 'thriller', title: "Kshana Kshanam", year: 1991, rating: "8.2", trailerId: null, desc: "A petty thief and an innocent young woman get caught in a bank robbery crossfire." },
+            { lang: 'telugu', genre: 'thriller', title: "Aditya 369", year: 1991, rating: "8.4", trailerId: null, desc: "A group of children and a couple accidentally travel back in time in a time machine." },
+            { lang: 'telugu', genre: 'romance', title: "Sita Ramam", year: 2022, rating: "8.6", trailerId: "tP-912-Y5iE", desc: "An orphan soldier, Lieutenant Ram's life changes, after he gets a letter from a girl named Sita." },
+            { lang: 'telugu', genre: 'romance', title: "Geethanjali", year: 1989, rating: "8.5", trailerId: null, desc: "A tragedy-stricken man falls in love with a terminally ill woman." },
+            { lang: 'telugu', genre: 'horror', title: "Arundhati", year: 2009, rating: "7.3", trailerId: "0T32p26k7v0", desc: "A brave queen battles an evil mystic. Generations later, he returns." },
+            { lang: 'telugu', genre: 'horror', title: "Virupaksha", year: 2023, rating: "7.2", trailerId: "8f6_T_0u3a0", desc: "Mysterious deaths occur in a village due to an unknown person's occult practice." },
+            { lang: 'telugu', genre: 'horror', title: "Kashmora", year: 1986, rating: "7.0", trailerId: null, desc: "A classic horror thriller involving black magic and an evil sorcerer." },
+            // --- HINDI ---
+            { lang: 'hindi', genre: 'action', title: "Sholay", year: 1975, rating: "8.1", trailerId: "hLw9c0J1s4o", desc: "A former police officer enlists two outlaws to capture a bandit." },
+            { lang: 'hindi', genre: 'action', title: "War", year: 2019, rating: "6.5", trailerId: "tQ0mzXRk-oM", desc: "An Indian soldier chases after his mentor who has gone rogue." },
+            { lang: 'hindi', genre: 'action', title: "Don", year: 1978, rating: "7.8", trailerId: null, desc: "A wanted criminal dies in a police chase, and the police replace him with a lookalike." },
+            { lang: 'hindi', genre: 'comedy', title: "Hera Pheri", year: 2000, rating: "8.1", trailerId: "PTg_V0S1u3E", desc: "Three unemployed men find the answer to all their money problems via a wrong number." },
+            { lang: 'hindi', genre: 'comedy', title: "Andaz Apna Apna", year: 1994, rating: "8.0", trailerId: "fd_w7j9r6iE", desc: "Two slackers compete for the affections of an heiress, inadvertantly becoming protectors from an evil criminal." },
+            { lang: 'hindi', genre: 'comedy', title: "Chupke Chupke", year: 1975, rating: "8.3", trailerId: null, desc: "A newly wedded husband plays a practical joke on his wife's family with full support from his wife and friends." },
+            { lang: 'hindi', genre: 'drama', title: "Lagaan", year: 2001, rating: "8.1", trailerId: "oSIGQ0YkFxs", desc: "Villagers in Victorian India stake their future on a game of cricket against British rulers." },
+            { lang: 'hindi', genre: 'drama', title: "Anand", year: 1971, rating: "8.1", trailerId: null, desc: "The story of a terminally ill man who wishes to live life to the fullest before he dies." },
+            { lang: 'hindi', genre: 'thriller', title: "Drishyam", year: 2015, rating: "8.2", trailerId: "AuuX2j14NBg", desc: "Desperate measures are taken by a man who tries to save his family from the dark side of the law." },
+            { lang: 'hindi', genre: 'thriller', title: "Kahaani", year: 2012, rating: "8.1", trailerId: "rsNfE2S6yNw", desc: "A pregnant woman searches for her missing husband in Kolkata, but everyone claims he doesn't exist." },
+            { lang: 'hindi', genre: 'thriller', title: "Gupt", year: 1997, rating: "7.3", trailerId: "s36r-Hj2_6g", desc: "Sahil is accused of murdering his stepfather, the Governor, and must prove his innocence." },
+            { lang: 'hindi', genre: 'romance', title: "DDLJ", year: 1995, rating: "8.0", trailerId: "c25GKl5VNeY", desc: "When Raj meets Simran in Europe, it isn't love at first sight, but love eventually makes its presence felt." },
+            { lang: 'hindi', genre: 'romance', title: "Veer-Zaara", year: 2004, rating: "7.8", trailerId: "OSaMXzprPqI", desc: "Veer, an Indian pilot, falls in love with Zaara, a Pakistani girl." },
+            { lang: 'hindi', genre: 'horror', title: "Tumbbad", year: 2018, rating: "8.2", trailerId: "sN75MPxgvX8", desc: "A mythological story about a goddess who created the entire universe and the greed of men." },
+            { lang: 'hindi', genre: 'horror', title: "Stree", year: 2018, rating: "7.5", trailerId: "gzeaGcLLl_A", desc: "In the small town of Chanderi, the menfolk live in fear of an evil spirit named 'Stree' who abducts men in the night." },
+            { lang: 'hindi', genre: 'horror', title: "Raaz", year: 2002, rating: "6.6", trailerId: "2-T3-3-3-3", desc: "A couple moves to a new house to save their marriage, but a ghost starts haunting them." },
+            { lang: 'hindi', genre: 'horror', title: "Woh Kaun Thi?", year: 1964, rating: "7.5", trailerId: null, desc: "A doctor meets a mysterious woman on a rainy night, which leads to a series of strange events." },
+            // --- KANNADA ---
+            { lang: 'kannada', genre: 'action', title: "K.G.F: Chapter 2", year: 2022, rating: "8.3", trailerId: "JKa05nyUmuQ", desc: "In the blood-soaked Kolar Gold Fields, Rocky's name strikes fear into his foes." },
+            { lang: 'kannada', genre: 'action', title: "Ugramm", year: 2014, rating: "8.1", trailerId: null, desc: "A man with a violent past returns to protect a girl whose father was a friend." },
+            { lang: 'kannada', genre: 'action', title: "Om", year: 1995, rating: "8.8", trailerId: null, desc: "A priest's son becomes a gangster for love. A cult classic that defined the genre." },
+            { lang: 'kannada', genre: 'comedy', title: "Ganeshana Maduve", year: 1990, rating: "8.5", trailerId: null, desc: "Ganesha lives in a vatara and falls in love with the house owner's daughter. A laugh riot." },
+            { lang: 'kannada', genre: 'comedy', title: "Kirik Party", year: 2016, rating: "8.3", trailerId: null, desc: "A group of engineering students experiences life, love, and heartbreak." },
+            { lang: 'kannada', genre: 'drama', title: "Kantara", year: 2022, rating: "8.2", trailerId: "88iIgJe9N_0", desc: "A young tribal reluctantly dons the traditions of his ancestors to seek justice." },
+            { lang: 'kannada', genre: 'drama', title: "777 Charlie", year: 2022, rating: "8.8", trailerId: "9B5i_G22M_8", desc: "Dharma is stuck in a rut with his lonely lifestyle until a pup named Charlie enters his life." },
+            { lang: 'kannada', genre: 'drama', title: "Bhoothayyana Maga Ayyu", year: 1974, rating: "8.5", trailerId: null, desc: "A classic story of a feud between two villagers in rural Karnataka." },
+            { lang: 'kannada', genre: 'thriller', title: "Rangitaranga", year: 2015, rating: "8.2", trailerId: "1D_M1h_g-vU", desc: "A couple visits an ancestral home and encounters strange occurrences." },
+            { lang: 'kannada', genre: 'thriller', title: "Lucia", year: 2013, rating: "8.3", trailerId: null, desc: "An usher in a movie theater suffering from insomnia is tricked into buying a drug that leads to lucid dreams." },
+            { lang: 'kannada', genre: 'thriller', title: "U Turn", year: 2016, rating: "7.5", trailerId: null, desc: "A young reporter gets entangled in a murder case while investigating traffic offenders." },
+            { lang: 'kannada', genre: 'thriller', title: "A", year: 1998, rating: "8.0", trailerId: null, desc: "A psychological romantic thriller about a film director and an actress." },
+            { lang: 'kannada', genre: 'romance', title: "Mungaru Male", year: 2006, rating: "8.2", trailerId: "S0l_J8R8k-g", desc: "Preetam falls in love with Nandini, but she is already engaged. Features iconic rain songs." },
+            { lang: 'kannada', genre: 'romance', title: "Dia", year: 2020, rating: "8.2", trailerId: "pvJ0H5A4-wE", desc: "Dia takes three years to confess her feelings, but fate has a tragic twist in store." },
+            { lang: 'kannada', genre: 'romance', title: "Amruthavarshini", year: 1997, rating: "8.0", trailerId: null, desc: "A happy couple's life is turned upside down when a friend visits them." },
+            { lang: 'kannada', genre: 'horror', title: "Apthamitra", year: 2004, rating: "8.1", trailerId: null, desc: "A couple moves into a haunted palace, leading to psychological twists." },
+            { lang: 'kannada', genre: 'horror', title: "Naagarahaavu", year: 1972, rating: "8.8", trailerId: null, desc: "A hot-tempered student's life spirals out of control. A timeless classic." },
+            { lang: 'kannada', genre: 'horror', title: "Shh!", year: 1993, rating: "8.3", trailerId: null, desc: "A suspense horror film where a film crew encounters real supernatural events." }
+        ];
+
+        const container = document.getElementById('app-container');
+        const navControls = document.getElementById('nav-controls');
+        const btnBack = document.getElementById('btn-back');
+        const btnHome = document.getElementById('btn-home');
+        const notificationEl = document.getElementById('notification');
+        const cinemaModal = document.getElementById('cinema-modal');
+        const closeCinemaBtn = document.getElementById('close-cinema');
+        const playerContainer = document.getElementById('player-container');
+
+        // --- HELPERS ---
+        function setupWatchlistListener() {
+            if (!user || !db) return;
+            const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'watchlist'));
+            onSnapshot(q, (snapshot) => {
+                state.watchlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                render();
+            });
+        }
+
+        async function addToWatchlist(movie) {
+            if (!user) return showToast("Log in required");
+            try {
+                const docId = movie.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'watchlist', docId), { ...movie, createdAt: serverTimestamp() });
+                showToast("Saved to Watchlist");
+            } catch (e) { console.error(e); }
+        }
+
+        async function removeFromWatchlist(movieId) {
+            if (!user) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'watchlist', movieId));
+                showToast("Removed");
+            } catch (e) { console.error(e); }
+        }
+
+        function showToast(msg) {
+            const text = document.getElementById('notification-text');
+            text.textContent = msg;
+            notificationEl.classList.remove('hidden');
+            notificationEl.classList.add('animate-fade-in');
+            setTimeout(() => notificationEl.classList.add('hidden'), 3000);
+        }
+
+        function getStreamingProvider(title) {
+            if (!title || title === "No matches found") return null;
+            const providers = [
+                { name: 'Netflix', color: 'text-red-500' },
+                { name: 'Prime', color: 'text-blue-400' },
+                { name: 'Hotstar', color: 'text-purple-500' }
+            ];
+            return providers[title.length % providers.length];
+        }
+
+        // --- LOGIC ---
+        function pickMovie() {
+            if (!state.lang || !state.genre || !state.era) return;
+            
+            state.isAnimating = true;
+            render();
+
+            // Countdown Logic
+            let count = 3;
+            const countdownInterval = setInterval(() => {
+                state.countdownValue = count;
+                render(); // re-render to show number
+                count--;
+                if (count < 0) {
+                    clearInterval(countdownInterval);
+                    finishPick();
+                }
+            }, 700);
+        }
+
+        function finishPick() {
+            const filteredMovies = movies.filter(m => {
+                const matchesLang = m.lang === state.lang.id;
+                const matchesGenre = m.genre === state.genre.id;
+                const matchesEra = state.era.id === 'modern' ? m.year >= 2000 : m.year < 2000;
+                return matchesLang && matchesGenre && matchesEra;
+            });
+
+            if (filteredMovies.length === 0) {
+                    state.recommendation = {
+                    title: "No matches found",
+                    year: "N/A",
+                    rating: "?",
+                    desc: `We couldn't find a ${state.era.label} ${state.lang.label} ${state.genre.label} movie in our database yet.`,
+                    trailerId: null
+                    };
+            } else {
+                const availableMovies = filteredMovies.filter(m => !state.history.includes(m.title));
+                const pool = availableMovies.length > 0 ? availableMovies : filteredMovies;
+                const randomMovie = pool[Math.floor(Math.random() * pool.length)];
+                
+                state.recommendation = randomMovie;
+                state.history.push(randomMovie.title);
+                if (state.history.length > 10) state.history.shift();
+            }
+
+            state.isAnimating = false;
+            state.view = 'result';
+            render();
+        }
+
+        function openTrailer(trailerId, title, year) {
+            if (trailerId) {
+                playerContainer.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${trailerId}?autoplay=1&rel=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                cinemaModal.classList.remove('hidden');
+            } else {
+                const query = encodeURIComponent(title + " " + year + " trailer");
+                window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank');
+            }
+        }
+
+        // --- RENDERERS ---
+
+        function renderLanding() {
+            return `
+                <div class="flex flex-col items-center justify-center min-h-[80vh] text-center animate-fade-in">
+                    <div class="mb-8 relative group cursor-default">
+                        <div class="absolute inset-0 bg-red-600 blur-[60px] opacity-20 rounded-full group-hover:opacity-30 transition-opacity duration-1000"></div>
+                        <h1 class="text-7xl sm:text-8xl font-poster font-bold text-white tracking-tighter relative z-10 leading-none drop-shadow-2xl">
+                            1DOWN<br/><span class="text-red-600">PICKER</span>
+                        </h1>
+                    </div>
+                    
+                    <p class="text-lg text-white/60 font-light tracking-wide mb-12 max-w-xs mx-auto leading-relaxed">
+                        Cure your decision paralysis.<br/>
+                        <span class="text-white font-medium">One Click. One Legend.</span>
+                    </p>
+
+                    <button onclick="window.navigate('language')" class="group relative px-8 py-4 bg-white text-black font-poster font-bold text-xl tracking-wider hover:scale-105 transition-transform duration-300">
+                        <span class="relative z-10 flex items-center gap-2">
+                            START THE HUNT <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </span>
+                        <div class="absolute inset-0 bg-red-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 z-0"></div>
+                        <span class="absolute inset-0 border border-white pointer-events-none"></span>
+                    </button>
+                    
+                    <button onclick="window.navigate('watchlist')" class="mt-6 text-xs tracking-[0.2em] text-white/40 hover:text-red-500 transition-colors flex items-center gap-2 uppercase font-bold">
+                        <i data-lucide="archive" class="w-3 h-3"></i> Access Archives (${state.watchlist.length})
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderLanguage() {
+            return `
+                <div class="space-y-8 animate-fade-in">
+                    <div class="text-center">
+                        <p class="text-red-600 text-xs font-bold tracking-[0.3em] mb-2 uppercase">Step 01</p>
+                        <h2 class="text-4xl font-poster text-white">Select Region</h2>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        ${languages.map(lang => `
+                            <button onclick="window.selectLanguage('${lang.id}')" class="glass-panel p-8 hover:bg-white/5 transition-all duration-300 group text-left border border-white/5 hover:border-red-600/50 relative overflow-hidden">
+                                <h3 class="text-2xl font-poster text-white group-hover:text-red-500 transition-colors relative z-10">${lang.label}</h3>
+                                <span class="text-[100px] font-poster absolute -bottom-8 -right-4 text-white/5 group-hover:text-white/10 transition-colors z-0 pointer-events-none">${lang.native}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGenre() {
+            return `
+                <div class="space-y-8 animate-fade-in">
+                     <div class="text-center relative">
+                        <p class="text-red-600 text-xs font-bold tracking-[0.3em] mb-2 uppercase">Step 02</p>
+                        <h2 class="text-4xl font-poster text-white">Select Mood</h2>
+                        <div class="absolute top-0 right-0 px-3 py-1 border border-white/10 text-[10px] font-bold tracking-widest text-white/50 uppercase">${state.lang.label}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        ${genres.map(g => `
+                            <button onclick="window.selectGenre('${g.id}')" class="glass-panel p-5 hover:bg-white/10 transition-all duration-300 group flex items-center gap-4 border border-white/5 hover:border-red-500">
+                                <i data-lucide="${g.icon}" class="w-6 h-6 text-white/40 group-hover:text-white transition-colors"></i>
+                                <span class="font-poster text-xl text-white tracking-wide">${g.label}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEra() {
+            return `
+                <div class="space-y-8 animate-fade-in">
+                     <div class="text-center">
+                        <p class="text-red-600 text-xs font-bold tracking-[0.3em] mb-2 uppercase">Final Step</p>
+                        <h2 class="text-4xl font-poster text-white">Select Era</h2>
+                    </div>
+                    <div class="space-y-4">
+                        ${eras.map(e => `
+                            <button onclick="window.selectEra('${e.id}')" class="w-full glass-panel p-8 hover:bg-white/5 transition-all duration-300 group text-left border border-white/5 hover:border-red-500 flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-3xl font-poster text-white group-hover:text-red-500 transition-colors">${e.label}</h3>
+                                    <p class="text-white/40 font-mono text-xs mt-1">${e.sub}</p>
+                                </div>
+                                <i data-lucide="${e.icon}" class="w-8 h-8 text-white/20 group-hover:text-white group-hover:rotate-12 transition-all"></i>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLoader() {
+            return `
+                <div class="flex flex-col items-center justify-center min-h-[50vh] w-full">
+                    <div class="relative flex items-center justify-center w-40 h-40 rounded-full border-4 border-white/10 bg-black">
+                        <!-- Film Reel Lines -->
+                        <div class="absolute inset-0 border-4 border-t-white/50 border-transparent rounded-full animate-spin duration-1000"></div>
+                        <span class="text-8xl font-poster font-bold text-white countdown-anim">${state.countdownValue}</span>
+                    </div>
+                    <p class="mt-8 font-mono text-xs text-red-500 tracking-[0.3em] animate-pulse">SCANNING CELLULOID...</p>
+                </div>
+            `;
+        }
+
+        function renderResult() {
+            if (state.isAnimating) return renderLoader();
+            
+            const m = state.recommendation;
+            const isSaved = state.watchlist.some(w => w.title === m.title);
+            const provider = getStreamingProvider(m.title);
+            const isError = m.title === "No matches found";
+            
+            if(!m) return `<div>Error</div>`;
+
+            return `
+                <div class="animate-poster w-full max-w-sm mx-auto bg-[#0a0a0a] border border-white/10 shadow-2xl shadow-black overflow-hidden relative group">
+                    
+                    <!-- Top Section: Rating & Meta -->
+                    <div class="p-6 border-b border-white/5 flex justify-between items-start bg-gradient-to-b from-white/5 to-transparent">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-1">IMDB Rating</span>
+                            <span class="text-5xl font-poster text-white">${m.rating}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-1">${m.year}</span>
+                            <span class="inline-block px-2 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${m.lang || state.lang.label}</span>
+                        </div>
+                    </div>
+
+                    <!-- Middle: Title (Typographic) -->
+                    <div class="py-12 px-6 text-center relative">
+                        <h1 class="text-5xl font-poster font-bold text-white leading-[0.9] tracking-tighter uppercase break-words drop-shadow-lg">${m.title}</h1>
+                        <div class="w-12 h-1 bg-red-600 mx-auto mt-6 mb-6"></div>
+                        <p class="text-sm text-white/60 font-light leading-relaxed max-w-[280px] mx-auto">"${m.desc}"</p>
+                    </div>
+
+                    <!-- Bottom: Actions -->
+                    <div class="p-6 bg-[#050505] border-t border-white/5 space-y-3">
+                        
+                        ${provider ? `
+                        <div class="flex justify-center gap-2 mb-4 opacity-60">
+                             <span class="text-[10px] uppercase tracking-widest text-white/40">Streaming on</span>
+                             <span class="text-[10px] uppercase tracking-widest font-bold ${provider.color}">${provider.name}</span>
+                        </div>` : ''}
+
+                        ${!isError ? `
+                        <button onclick="window.handleTrailer('${m.trailerId}', '${m.title.replace(/'/g, "\\'")}', '${m.year}')" class="w-full py-4 bg-white text-black font-poster font-bold text-lg tracking-wide hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="${m.trailerId ? 'play' : 'search'}" class="w-5 h-5"></i>
+                            ${m.trailerId ? 'WATCH TRAILER' : 'SEARCH TRAILER'}
+                        </button>` : ''}
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                             ${!isError ? `
+                            <button onclick="window.handleSave()" class="py-3 border border-white/10 text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="${isSaved ? 'check' : 'plus'}" class="w-4 h-4"></i>
+                                <span class="text-xs font-bold tracking-widest uppercase">${isSaved ? 'SAVED' : 'LIST'}</span>
+                            </button>` : `<div class="hidden"></div>`}
+                            
+                            <button onclick="window.triggerPick()" class="${isError ? 'col-span-2' : ''} py-3 border border-white/10 text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                <span class="text-xs font-bold tracking-widest uppercase">SPIN AGAIN</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWatchlist() {
+            const list = state.watchlist;
+            return `
+                <div class="space-y-6 animate-fade-in w-full h-[70vh] flex flex-col">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                        <h2 class="text-3xl font-poster text-white">ARCHIVES</h2>
+                        <span class="text-xs font-mono text-red-500">${list.length} ITEMS</span>
+                    </div>
+
+                    ${list.length === 0 ? `
+                        <div class="flex-1 flex flex-col items-center justify-center text-center opacity-30">
+                            <i data-lucide="film" class="w-12 h-12 mb-4"></i>
+                            <p class="font-poster text-xl tracking-wide">NO RECORDS FOUND</p>
+                        </div>
+                    ` : `
+                        <div class="flex-1 overflow-y-auto space-y-0 custom-scrollbar pr-2">
+                            ${list.map(m => `
+                                <div class="group py-4 border-b border-white/5 flex items-center justify-between hover:bg-white/5 px-2 transition-colors">
+                                    <div>
+                                        <h3 class="font-poster text-lg text-white tracking-wide">${m.title}</h3>
+                                        <div class="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                                            <span>${m.year}</span>
+                                            <span class="text-red-800">•</span>
+                                            <span>${m.rating}</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="window.handleRemove('${m.id}')" class="text-white/20 hover:text-red-500 transition-colors">
+                                        <i data-lucide="x" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        // --- CORE ---
+        function render() {
+            navControls.classList.toggle('hidden', state.view === 'landing');
+            
+            let content = '';
+            switch(state.view) {
+                case 'landing': content = renderLanding(); break;
+                case 'language': content = renderLanguage(); break;
+                case 'genre': content = renderGenre(); break;
+                case 'era': content = renderEra(); break;
+                case 'result': content = renderResult(); break;
+                case 'watchlist': content = renderWatchlist(); break;
+            }
+            container.innerHTML = content;
+            lucide.createIcons();
+        }
+
+        // --- WINDOW EXPORTS ---
+        window.navigate = (v) => { state.view = v; render(); };
+        window.selectLanguage = (id) => { state.lang = languages.find(l=>l.id===id); state.view = 'genre'; render(); };
+        window.selectGenre = (id) => { state.genre = genres.find(g=>g.id===id); state.view = 'era'; render(); };
+        window.selectEra = (id) => { state.era = eras.find(e=>e.id===id); triggerPick(); };
+        window.triggerPick = () => { pickMovie(); };
+        window.handleSave = () => { if(state.recommendation) addToWatchlist(state.recommendation); };
+        window.handleRemove = (id) => removeFromWatchlist(id);
+        window.handleTrailer = (id, t, y) => openTrailer(id === 'null' ? null : id, t, y);
+
+        // Listeners
+        btnBack.addEventListener('click', () => {
+            const views = ['landing', 'language', 'genre', 'era', 'result'];
+            const currIdx = views.indexOf(state.view);
+            if(currIdx > 0) state.view = views[currIdx - 1];
+            if(state.view === 'watchlist') state.view = 'landing';
+            render();
+        });
+        btnHome.addEventListener('click', () => {
+            state.view = 'landing';
+            render();
+        });
+        closeCinemaBtn.addEventListener('click', () => {
+            cinemaModal.classList.add('hidden');
+            playerContainer.innerHTML = '';
+        });
+
+        render();
+    </script>
+</body>
+</html>
