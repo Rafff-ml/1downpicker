@@ -66,18 +66,27 @@
             100% { transform: rotate(360deg); }
         }
         
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
+        @keyframes swipeRight {
+            to { transform: translateX(150%) rotate(10deg); opacity: 0; }
+        }
+        @keyframes swipeLeft {
+            to { transform: translateX(-150%) rotate(-10deg); opacity: 0; }
         }
 
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .spin-ring { animation: rotateRing 3s linear infinite; }
+        .swipe-right { animation: swipeRight 0.5s forwards; }
+        .swipe-left { animation: swipeLeft 0.5s forwards; }
         
         .ai-shimmer {
             animation: shimmer 2.5s infinite linear;
             background: linear-gradient(to right, rgba(255,255,255,0.02) 4%, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.02) 36%);
             background-size: 1000px 100%;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
         }
 
         /* Utility */
@@ -95,6 +104,14 @@
 
         .zarah-btn {
             background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+        }
+        
+        .cineswipe-btn {
+            background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+        }
+        
+        .peace-btn {
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
         }
         
         .scanner-overlay {
@@ -117,14 +134,14 @@
         }
     </style>
 </head>
-<body class="min-h-screen relative selection:bg-red-900 selection:text-white">
+<body class="min-h-screen relative selection:bg-red-900 selection:text-white" onclick="window.initAudioContext()">
 
     <!-- Film Grain Texture -->
     <div class="film-grain"></div>
 
     <!-- Ambient Spotlights -->
-    <div class="fixed top-[-10%] left-[20%] w-[60%] h-[60%] bg-red-900/10 rounded-full blur-[150px] pointer-events-none"></div>
-    <div class="fixed bottom-[-10%] right-[10%] w-[40%] h-[40%] bg-blue-900/5 rounded-full blur-[150px] pointer-events-none"></div>
+    <div class="fixed top-[-10%] left-[20%] w-[60%] h-[60%] bg-red-900/10 rounded-full blur-[150px] pointer-events-none fixed"></div>
+    <div class="fixed bottom-[-10%] right-[10%] w-[40%] h-[40%] bg-blue-900/5 rounded-full blur-[150px] pointer-events-none fixed"></div>
 
     <!-- Header (Fixed) -->
     <div class="fixed top-0 w-full p-6 md:p-8 z-50 flex justify-between items-center pointer-events-none">
@@ -146,6 +163,11 @@
 
         <!-- Right Controls -->
         <div class="pointer-events-auto flex items-center gap-4">
+             <!-- Audio Toggle -->
+             <button id="btn-audio" onclick="window.toggleMute()" class="p-2 rounded-full text-white/50 hover:text-white hover:bg-white/5 transition-all" title="Toggle Sound">
+                <i data-lucide="volume-2" class="w-5 h-5"></i>
+            </button>
+
             <div id="nav-controls" class="hidden flex items-center gap-3">
                 <button id="btn-home" class="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/5 transition-all" title="Home">
                     <i data-lucide="home" class="w-5 h-5"></i>
@@ -184,30 +206,18 @@
         <button onclick="window.closeScanner()" class="absolute top-8 right-8 z-50 text-white/50 hover:text-white transition-colors">
              <i data-lucide="x" class="w-8 h-8"></i>
         </button>
-        
         <div class="relative w-full max-w-2xl aspect-[4/3] bg-black border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
             <video id="scanner-video" autoplay playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video>
             <canvas id="scanner-canvas" class="hidden"></canvas>
-            
-            <!-- Viewfinder UI -->
             <div class="absolute inset-0 scanner-overlay pointer-events-none"></div>
-            <div class="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-white/30 rounded-tl-2xl pointer-events-none"></div>
-            <div class="absolute top-8 right-8 w-16 h-16 border-t-2 border-r-2 border-white/30 rounded-tr-2xl pointer-events-none"></div>
-            <div class="absolute bottom-8 left-8 w-16 h-16 border-b-2 border-l-2 border-white/30 rounded-bl-2xl pointer-events-none"></div>
-            <div class="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-white/30 rounded-br-2xl pointer-events-none"></div>
-            
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div class="w-64 h-64 border border-white/10 rounded-full animate-pulse"></div>
             </div>
-            
             <div class="absolute bottom-8 w-full flex justify-center items-center gap-8 z-20">
-                 <!-- Upload Option -->
                  <label class="cursor-pointer p-4 rounded-full bg-white/10 hover:bg-white/20 transition-all backdrop-blur-md group">
                     <input type="file" accept="image/*" class="hidden" onchange="window.handleImageUpload(event)">
                     <i data-lucide="upload" class="w-6 h-6 text-white group-hover:scale-110 transition-transform"></i>
                  </label>
-
-                 <!-- Capture Button -->
                  <button onclick="window.captureMood()" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center hover:scale-105 transition-all bg-white/10 backdrop-blur-sm">
                      <div class="w-16 h-16 bg-white rounded-full"></div>
                  </button>
@@ -216,35 +226,38 @@
         <p class="mt-6 text-white/50 font-poster tracking-widest text-xs animate-pulse">ALIGN FACE • SCANNING EMOTIONS</p>
     </div>
 
+    <!-- Intervention Modal -->
+    <div id="intervention-modal" class="fixed bottom-8 right-8 z-[95] max-w-sm hidden animate-pop-in">
+        <div class="glass-panel p-6 rounded-2xl border-l-4 border-red-600 shadow-2xl relative overflow-hidden">
+            <button onclick="window.closeIntervention()" class="absolute top-2 right-2 text-white/30 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            <div class="flex items-start gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-full bg-red-600/20 flex items-center justify-center flex-shrink-0"><i data-lucide="alert-circle" class="w-6 h-6 text-red-500"></i></div>
+                <div>
+                    <h4 class="font-poster text-white text-lg tracking-wide mb-1">Overthinking Detected</h4>
+                    <p class="text-xs text-white/60 mb-4">The paradox of choice is winning.</p>
+                    <button onclick="window.acceptIntervention()" class="bg-white text-black px-4 py-2 rounded font-bold text-xs tracking-widest uppercase hover:bg-gray-200 w-full">Let Fate Decide</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Zarah Modal -->
     <div id="zarah-modal" class="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-start justify-center pt-40 px-6 hidden animate-fade-in">
         <div class="w-full max-w-xl glass-panel border-t border-purple-500/50 p-8 rounded-3xl shadow-2xl relative">
             <button onclick="window.closeZarah()" class="absolute top-6 right-6 text-white/30 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
-            
             <div class="flex flex-col items-center text-center mb-10">
-                <div class="w-16 h-16 rounded-full zarah-btn flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
-                    <i data-lucide="bot" class="w-8 h-8 text-white"></i>
-                </div>
+                <div class="w-16 h-16 rounded-full zarah-btn flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20"><i data-lucide="bot" class="w-8 h-8 text-white"></i></div>
                 <h3 class="text-white font-poster text-3xl tracking-wide mb-2">Zarah AI</h3>
                 <p class="text-white/40 text-sm font-light">The Infinite Movie Database</p>
             </div>
-
             <div class="space-y-6">
                 <div class="relative group">
-                    <input type="text" id="zarah-input" 
-                        placeholder="Describe the exact vibe..."
-                        class="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg focus:outline-none focus:border-purple-500/50 transition-all font-light placeholder-white/20 pr-24"
-                    >
+                    <input type="text" id="zarah-input" placeholder="Describe the exact vibe..." class="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg focus:outline-none focus:border-purple-500/50 transition-all font-light placeholder-white/20 pr-24">
                     <div class="absolute right-3 top-3 flex gap-2">
-                        <button id="zarah-mic-btn" onclick="window.toggleVoiceCommand()" class="p-2.5 bg-white/5 hover:bg-red-600/80 text-white/70 hover:text-white rounded-xl transition-all border border-white/5">
-                            <i data-lucide="mic" class="w-5 h-5"></i>
-                        </button>
-                        <button onclick="window.handleSmartPick()" class="p-2.5 bg-white/5 hover:bg-purple-600 text-white rounded-xl transition-all border border-white/5">
-                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                        </button>
+                        <button id="zarah-mic-btn" onclick="window.toggleVoiceCommand()" class="p-2.5 bg-white/5 hover:bg-red-600/80 text-white/70 hover:text-white rounded-xl transition-all border border-white/5"><i data-lucide="mic" class="w-5 h-5"></i></button>
+                        <button onclick="window.handleSmartPick()" class="p-2.5 bg-white/5 hover:bg-purple-600 text-white rounded-xl transition-all border border-white/5"><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
                     </div>
                 </div>
-                
                 <div class="flex gap-3 flex-wrap justify-center">
                     <button onclick="document.getElementById('zarah-input').value='80s neon noir thriller'; window.handleSmartPick()" class="text-[10px] px-4 py-2 rounded-full border border-white/5 bg-white/5 text-white/50 hover:text-white hover:border-white/20 transition-all uppercase tracking-wider"> Neon Noir</button>
                     <button onclick="document.getElementById('zarah-input').value='Comfort movie with rain'; window.handleSmartPick()" class="text-[10px] px-4 py-2 rounded-full border border-white/5 bg-white/5 text-white/50 hover:text-white hover:border-white/20 transition-all uppercase tracking-wider">Comfort & Rain</button>
@@ -256,7 +269,7 @@
     <!-- Main Content Injection Point -->
     <div id="app-container"></div>
 
-    <!-- Footer (Fixed Bottom) -->
+    <!-- Footer -->
     <div class="fixed bottom-0 w-full py-6 text-center z-[80] pointer-events-none bg-gradient-to-t from-black to-transparent">
         <div class="inline-flex flex-col items-center opacity-40 hover:opacity-80 transition-opacity duration-500">
             <div class="flex items-center gap-2 pointer-events-auto cursor-default">
@@ -273,7 +286,7 @@
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- CONFIG ---
-        const apiKey = "process.env.GGOOGLE_API_KEY"; 
+        const apiKey = ""; 
         
         let firebaseConfig;
         let appId = 'default-app-id';
@@ -306,48 +319,89 @@
 
         // --- STATE ---
         const state = {
-            view: 'landing',
-            lang: null, genre: null, era: null,
-            recommendation: null, watchlist: [],
-            history: [],
-            isAnimating: false, luckyMode: false,
-            
-            // AI
-            aiContent: null, aiType: null, aiLoading: false,
-            smartSearchQuery: '', isSmartSearching: false, isListening: false,
-            
-            // Chat
-            chatMessages: [], chatLoading: false,
-            
-            // Watchlist
-            watchlistAnalysis: null, isAnalyzingWatchlist: false,
+            view: 'landing', lang: null, genre: null, era: null, recommendation: null, watchlist: [], history: [], isAnimating: false, luckyMode: false,
+            aiContent: null, aiType: null, aiLoading: false, smartSearchQuery: '', isSmartSearching: false, isListening: false,
+            chatMessages: [], chatLoading: false, watchlistAnalysis: null, isAnalyzingWatchlist: false, scannerOpen: false, doomScrollTimer: null,
+            audioEnabled: true,
+            // CINESWIPE STATE
+            swipeDeck: [], likedMovies: [], swipeCount: 0, currentCardIndex: 0,
+            // PEACEKEEPER STATE
+            peacekeeperA: '', peacekeeperB: ''
+        };
 
-            // Scanner
-            scannerOpen: false
+        // --- AUDIO ENGINE ---
+        const appAudio = {
+            ctx: null,
+            init: function() {
+                if (!this.ctx) {
+                    try {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch(e) { console.log("Audio not supported"); }
+                }
+            },
+            playTone: function(freq, type, duration, vol = 0.1) {
+                if (!state.audioEnabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            },
+            playHover: function() { this.playTone(800, 'sine', 0.05, 0.05); },
+            playClick: function() { this.playTone(200, 'triangle', 0.1, 0.1); },
+            playReveal: function() { 
+                if (!state.audioEnabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 1.5);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 2);
+                } catch(e){}
+            },
+            playSwipe: function(type) {
+                if (!state.audioEnabled || !this.ctx) return;
+                const freq = type === 'like' ? 800 : 200;
+                this.playTone(freq, 'sine', 0.1, 0.2);
+            }
+        };
+        
+        window.initAudioContext = () => {
+            appAudio.init();
+            if(appAudio.ctx && appAudio.ctx.state === 'suspended') {
+                appAudio.ctx.resume();
+            }
+        };
+        
+        window.playHover = () => appAudio.playHover();
+        window.playClick = () => appAudio.playClick();
+        window.playReveal = () => appAudio.playReveal();
+        
+        window.toggleMute = () => {
+            state.audioEnabled = !state.audioEnabled;
+            const btn = document.getElementById('btn-audio');
+            if(btn) btn.innerHTML = state.audioEnabled ? '<i data-lucide="volume-2" class="w-5 h-5"></i>' : '<i data-lucide="volume-x" class="w-5 h-5 text-red-500"></i>';
+            lucide.createIcons();
         };
 
         // --- CORE DATA ---
-        const languages = [
-            { id: 'english', label: 'English', native: 'EN' },
-            { id: 'telugu', label: 'Telugu', native: 'TE' },
-            { id: 'hindi', label: 'Hindi', native: 'HI' },
-            { id: 'kannada', label: 'Kannada', native: 'KA' },
-        ];
-
-        const genres = [
-            { id: 'action', label: 'Action', icon: 'swords' },
-            { id: 'comedy', label: 'Comedy', icon: 'laugh' },
-            { id: 'drama', label: 'Drama', icon: 'drama' },
-            { id: 'thriller', label: 'Thriller', icon: 'eye' },
-            { id: 'romance', label: 'Romance', icon: 'heart' },
-            { id: 'horror', label: 'Horror', icon: 'ghost' },
-        ];
-
-        const eras = [
-            { id: 'modern', label: 'Modern Era', sub: '2000 - Present', icon: 'zap' },
-            { id: 'classic', label: 'Golden Age', sub: 'Pre-2000', icon: 'disc' }
-        ];
+        const languages = [ { id: 'english', label: 'English', native: 'EN' }, { id: 'telugu', label: 'Telugu', native: 'TE' }, { id: 'hindi', label: 'Hindi', native: 'HI' }, { id: 'kannada', label: 'Kannada', native: 'KA' } ];
+        const genres = [ { id: 'action', label: 'Action', icon: 'swords' }, { id: 'comedy', label: 'Comedy', icon: 'laugh' }, { id: 'drama', label: 'Drama', icon: 'drama' }, { id: 'thriller', label: 'Thriller', icon: 'eye' }, { id: 'romance', label: 'Romance', icon: 'heart' }, { id: 'horror', label: 'Horror', icon: 'ghost' } ];
+        const eras = [ { id: 'modern', label: 'Modern Era', sub: '2000 - Present', icon: 'zap' }, { id: 'classic', label: 'Golden Age', sub: 'Pre-2000', icon: 'disc' } ];
         
+        // FULL DATABASE RESTORED
         const movies = [
              { lang: 'english', genre: 'action', title: "Mad Max: Fury Road", year: 2015, rating: "8.1", trailerId: "hEJnMQG9ev8", desc: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler." },
              { lang: 'english', genre: 'action', title: "The Matrix", year: 1999, rating: "8.7", trailerId: "vKQi3bBA1y8", desc: "A computer hacker learns the world is a simulation created by machines." },
@@ -362,8 +416,6 @@
              { lang: 'english', genre: 'thriller', title: "Se7en", year: 1995, rating: "8.6", trailerId: "znmZoVkCjpI", desc: "Two detectives, a rookie and a veteran, hunt a serial killer who uses the seven deadly sins." },
              { lang: 'english', genre: 'horror', title: "The Shining", year: 1980, rating: "8.4", trailerId: "S014oGZiSdI", desc: "A family heads to an isolated hotel for the winter where a sinister presence influences the father." },
              { lang: 'english', genre: 'horror', title: "Alien", year: 1979, rating: "8.5", trailerId: "LjLamj-b0I8", desc: "The crew of a commercial spacecraft encounter a deadly lifeform." },
-
-             // TELUGU
              { lang: 'telugu', genre: 'action', title: "RRR", year: 2022, rating: "7.8", trailerId: "NgBoMJy386M", desc: "A fearless revolutionary and an officer in the British force decide to join forces." },
              { lang: 'telugu', genre: 'action', title: "Pokiri", year: 2006, rating: "8.0", trailerId: "oD7p6u1aXj4", desc: "A money-minded criminal joins a gang, but he has a hidden agenda." },
              { lang: 'telugu', genre: 'comedy', title: "Jathi Ratnalu", year: 2021, rating: "7.3", trailerId: "z8p4-h6zGf8", desc: "Three happy-go-lucky friends move to Hyderabad for a better life but get framed." },
@@ -373,19 +425,15 @@
              { lang: 'telugu', genre: 'thriller', title: "Kshana Kshanam", year: 1991, rating: "8.2", trailerId: null, desc: "A petty thief and an innocent young woman get caught in a bank robbery crossfire." },
              { lang: 'telugu', genre: 'horror', title: "Arundhati", year: 2009, rating: "7.3", trailerId: "0T32p26k7v0", desc: "A brave queen battles an evil mystic." },
              { lang: 'telugu', genre: 'horror', title: "Virupaksha", year: 2023, rating: "7.2", trailerId: "8f6_T_0u3a0", desc: "Mysterious deaths occur in a village due to an unknown person's occult practice." },
-
-             // HINDI
              { lang: 'hindi', genre: 'action', title: "Sholay", year: 1975, rating: "8.1", trailerId: "hLw9c0J1s4o", desc: "A former police officer enlists two outlaws to capture a bandit." },
              { lang: 'hindi', genre: 'action', title: "Gangs of Wasseypur", year: 2012, rating: "8.2", trailerId: "j-AkWDkDYqw", desc: "A clash between Sultan and Shahid Khan leads to the expulsion of Khan from Wasseypur." },
              { lang: 'hindi', genre: 'comedy', title: "Hera Pheri", year: 2000, rating: "8.1", trailerId: "PTg_V0S1u3E", desc: "Three unemployed men find the answer to all their money problems via a wrong number." },
              { lang: 'hindi', genre: 'comedy', title: "3 Idiots", year: 2009, rating: "8.4", trailerId: "K0eDlFX9GMc", desc: "Two friends search for their long lost companion who inspired them to think differently." },
              { lang: 'hindi', genre: 'drama', title: "Lagaan", year: 2001, rating: "8.1", trailerId: "oSIGQ0YkFxs", desc: "Villagers in Victorian India stake their future on a game of cricket against British rulers." },
              { lang: 'hindi', genre: 'drama', title: "Dangal", year: 2016, rating: "8.3", trailerId: "x_7YlGv9u1g", desc: "Former wrestler Mahavir Singh Phogat and his two wrestler daughters struggle towards glory." },
-             { lang: 'hindi', genre: 'thriller', title: "Drishyam", year: 2015, rating: "8.2", trailerId: "AuuX2j14NBg", desc: "Desperate measures are taken by a man who tries to save his family." },
+             { lang: 'hindi', genre: 'thriller', title: "Drishyam", year: 2015, rating: "8.2", trailerId: "AuuX2j14NBg", desc: "Desperate measures are taken by a man who tries to save his family from the dark side of the law." },
              { lang: 'hindi', genre: 'thriller', title: "Andhadhun", year: 2018, rating: "8.2", trailerId: "2iVYI99VGaw", desc: "A series of mysterious events change the life of a blind pianist." },
              { lang: 'hindi', genre: 'horror', title: "Tumbbad", year: 2018, rating: "8.2", trailerId: "sN75MPxgvX8", desc: "A mythological story about a goddess who created the entire universe." },
-
-             // KANNADA
              { lang: 'kannada', genre: 'action', title: "K.G.F: Chapter 1", year: 2018, rating: "8.2", trailerId: "-KfsY-qwBS0", desc: "A gangster goes undercover as a slave to assassinate a mine owner." },
              { lang: 'kannada', genre: 'action', title: "Kantara", year: 2022, rating: "8.3", trailerId: "88iIgJe9N_0", desc: "A young tribal reluctantly dons the traditions of his ancestors to seek justice." },
              { lang: 'kannada', genre: 'comedy', title: "Kirik Party", year: 2016, rating: "8.3", trailerId: "IfvnbK-1-1-1", desc: "A group of engineering students experiences life, love, and heartbreak." },
@@ -407,6 +455,8 @@
         const scannerModal = document.getElementById('scanner-modal');
         const videoEl = document.getElementById('scanner-video');
         const canvasEl = document.getElementById('scanner-canvas');
+        const interventionModal = document.getElementById('intervention-modal');
+        const btnAudio = document.getElementById('btn-audio');
 
         let stream = null;
 
@@ -440,6 +490,7 @@
                 const docId = movie.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                 await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'watchlist', docId), { ...movie, createdAt: serverTimestamp() });
                 showToast("Saved to Archives");
+                appAudio.playClick();
             } catch (e) { console.error(e); }
         }
 
@@ -466,6 +517,12 @@
                 { name: 'Hotstar', color: 'text-purple-500' }
             ];
             return providers[title.length % providers.length];
+        }
+        
+        // Feature 3: One-Tap Watch (Deep Search Link)
+        function openStreamingLink(title) {
+            const query = `watch ${title} streaming online`;
+            window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
         }
 
         // --- GEMINI ---
@@ -499,6 +556,28 @@
             } catch (e) { return null; }
         }
 
+        // --- DOOMSCROLL LOGIC ---
+        function resetDoomScrollTimer() {
+            if (state.doomScrollTimer) clearTimeout(state.doomScrollTimer);
+            interventionModal.classList.add('hidden');
+            
+            if (['landing', 'language', 'genre', 'era'].includes(state.view)) {
+                state.doomScrollTimer = setTimeout(() => {
+                    interventionModal.classList.remove('hidden');
+                }, 60000);
+            }
+        }
+        
+        window.closeIntervention = () => {
+             interventionModal.classList.add('hidden');
+             if(state.doomScrollTimer) clearTimeout(state.doomScrollTimer);
+        };
+        
+        window.acceptIntervention = () => {
+            window.closeIntervention();
+            window.imFeelingLucky();
+        }
+
         // --- SCANNER LOGIC ---
         function openScanner() {
             scannerModal.classList.remove('hidden');
@@ -526,7 +605,7 @@
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
-            
+            appAudio.playClick();
             closeScanner();
             analyzeImage(base64);
         }
@@ -566,7 +645,6 @@
             }
             render();
         }
-
 
         // --- VOICE COMMAND LOGIC ---
         let recognition;
@@ -641,6 +719,85 @@
             }
             render();
         }
+        
+        // --- CINESWIPE LOGIC ---
+        function startCineSwipe() {
+             state.swipeDeck = [...movies].sort(() => 0.5 - Math.random()).slice(0, 10); 
+             state.likedMovies = [];
+             state.swipeCount = 0;
+             state.currentCardIndex = 0;
+             state.view = 'cineswipe';
+             render();
+        }
+        
+        function handleSwipe(direction) {
+             const currentMovie = state.swipeDeck[state.currentCardIndex];
+             const cardEl = document.getElementById('swipe-card');
+             
+             if (direction === 'right') {
+                 state.likedMovies.push(currentMovie.title);
+                 cardEl.classList.add('swipe-right');
+                 appAudio.playSwipe('like');
+             } else {
+                 cardEl.classList.add('swipe-left');
+                 appAudio.playSwipe('pass');
+             }
+             
+             setTimeout(async () => {
+                 state.currentCardIndex++;
+                 state.swipeCount++;
+                 
+                 // Super Match Logic
+                 if (state.likedMovies.length >= 3 || state.currentCardIndex >= state.swipeDeck.length) {
+                      state.isSmartSearching = true;
+                      render(); 
+                      const prompt = `Based on these liked movies: ${state.likedMovies.join(', ')}, recommend ONE perfect Super Match. Return JSON: {"title": "Title", "year": 2000, "rating": "8.0", "desc": "Plot", "lang": "Lang", "genre": "Genre", "trailerId": null}`;
+                      const res = await callGemini(prompt);
+                      state.isSmartSearching = false;
+                      
+                      if(res) {
+                          try {
+                              const match = res.match(/\{[\s\S]*\}/);
+                              state.recommendation = { ...JSON.parse(match[0]), isAiGenerated: true, isSuperMatch: true };
+                              state.view = 'result';
+                          } catch(e) { state.view = 'landing'; }
+                      } else {
+                          state.view = 'landing';
+                      }
+                 } 
+                 render();
+             }, 400);
+        }
+        
+        // Feature 1: Peacekeeper (Couples Mode)
+        function startPeacekeeper() {
+            state.view = 'peacekeeper';
+            render();
+        }
+        
+        async function handlePeacekeeperSubmit() {
+            const moodA = document.getElementById('pk-input-a').value;
+            const moodB = document.getElementById('pk-input-b').value;
+            
+            if(!moodA || !moodB) { showToast("Enter both moods!"); return; }
+            
+            state.isSmartSearching = true;
+            render();
+            
+            const prompt = `Find a movie that bridges these two conflicting tastes: Person A wants "${moodA}", Person B wants "${moodB}". Return JSON: {"title": "Title", "year": 2000, "rating": "8.0", "desc": "Why it works for both...", "lang": "Lang", "genre": "Genre", "trailerId": null}`;
+            
+            const result = await callGemini(prompt);
+            state.isSmartSearching = false;
+            
+            if(result) {
+                try {
+                    const match = result.match(/\{[\s\S]*\}/);
+                    state.recommendation = { ...JSON.parse(match[0]), isAiGenerated: true };
+                    state.view = 'result';
+                } catch(e) { showToast("Conflict too strong!"); state.view = 'peacekeeper'; }
+            }
+            render();
+        }
 
         function pickMovie() {
             if (!state.luckyMode && (!state.lang || !state.genre || !state.era)) return;
@@ -653,7 +810,6 @@
                  let rec = null;
                  
                  if (!state.luckyMode) {
-                     // Rule-based filtering
                      const filtered = movies.filter(m => {
                         const matchesLang = m.lang === state.lang.id;
                         const matchesGenre = m.genre === state.genre.id;
@@ -661,7 +817,6 @@
                         return matchesLang && matchesGenre && matchesEra;
                      });
                      
-                     // Exclude current recommendation from pool
                      const currentTitle = state.recommendation?.title;
                      const available = filtered.filter(m => m.title !== currentTitle);
                      
@@ -669,13 +824,11 @@
                          rec = available[Math.floor(Math.random() * available.length)];
                      }
                  } else {
-                     // Lucky mode filtering (any movie not currently shown)
                      const currentTitle = state.recommendation?.title;
                      const available = movies.filter(m => m.title !== currentTitle);
                      rec = available[Math.floor(Math.random() * available.length)];
                  }
 
-                 // AI Fallback if local DB exhausted or empty
                  if (!rec) {
                      const lang = state.lang ? state.lang.label : 'Any';
                      const genre = state.genre ? state.genre.label : 'Any';
@@ -692,10 +845,10 @@
                      }
                  }
                  
-                 // Final Fallback
                  state.recommendation = rec || movies[0];
                  state.isAnimating = false;
                  state.view = 'result';
+                 appAudio.playReveal();
                  render();
             }, 2500); 
         }
@@ -764,70 +917,59 @@
             zarahModal.classList.add('hidden');
         }
 
-        // --- RENDERERS ---
+        // --- RENDERERS (BREATHABLE LAYOUTS) ---
         
         function renderAiChat() {
             return `
                 <div class="layout-wrapper !max-w-5xl !p-0 pt-24 pb-6 h-screen flex flex-col animate-fade-in">
                     <div class="flex-1 flex border border-white/10 rounded-3xl overflow-hidden bg-black/40 backdrop-blur-md shadow-2xl">
-                        <!-- Sidebar -->
                         <div class="w-72 border-r border-white/10 hidden md:flex flex-col bg-black/20">
                             <div class="p-6 border-b border-white/10">
-                                <button onclick="window.clearChat()" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-poster tracking-widest text-xs transition-colors flex items-center justify-center gap-2 rounded-xl">
-                                    <i data-lucide="plus" class="w-4 h-4"></i> NEW SESSION
-                                </button>
+                                <button onclick="window.clearChat()" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-poster tracking-widest text-xs transition-colors flex items-center justify-center gap-2 rounded-xl"><i data-lucide="plus" class="w-4 h-4"></i> NEW SESSION</button>
                             </div>
-                            <div class="flex-1 p-6">
-                                <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4 font-bold">Memory</p>
-                                <div class="p-4 rounded-xl bg-white/5 border border-white/5 text-white/70 text-sm cursor-pointer hover:text-white hover:border-white/20 transition-all">
-                                    Current Session
-                                </div>
-                            </div>
+                            <div class="flex-1 p-6"><p class="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4 font-bold">Memory</p><div class="p-4 rounded-xl bg-white/5 border border-white/5 text-white/70 text-sm cursor-pointer hover:text-white hover:border-white/20 transition-all">Current Session</div></div>
                         </div>
-                        
-                        <!-- Chat -->
                         <div class="flex-1 flex flex-col relative bg-gradient-to-b from-transparent to-black/40">
-                             <div class="md:hidden p-4 border-b border-white/10 flex justify-end">
-                                <button onclick="window.clearChat()" class="text-xs text-white/60 hover:text-white flex items-center gap-1">
-                                    <i data-lucide="plus" class="w-3 h-3"></i> New Chat
-                                </button>
-                            </div>
-
+                             <div class="md:hidden p-4 border-b border-white/10 flex justify-end"><button onclick="window.clearChat()" class="text-xs text-white/60 hover:text-white flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> New Chat</button></div>
                             <div id="chat-messages" class="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 custom-scrollbar">
                                 ${state.chatMessages.length === 0 ? `
                                     <div class="h-full flex flex-col items-center justify-center text-center opacity-50">
-                                        <div class="w-20 h-20 rounded-full border border-white/10 bg-white/5 flex items-center justify-center mb-6 shadow-xl">
-                                            <span class="font-poster text-3xl text-white">1D</span>
-                                        </div>
+                                        <div class="w-20 h-20 rounded-full border border-white/10 bg-white/5 flex items-center justify-center mb-6 shadow-xl"><span class="font-poster text-3xl text-white">1D</span></div>
                                         <h2 class="font-poster text-3xl text-white mb-3 tracking-wide">1DOWN INTELLIGENCE</h2>
-                                        <p class="text-sm max-w-xs mx-auto font-light text-white/60 leading-relaxed">Your personal cinema concierge.<br/>Ask about directors, hidden gems, or life.</p>
+                                        <p class="text-sm max-w-xs mx-auto font-light text-white/60 leading-relaxed">Your personal cinema concierge.</p>
                                     </div>
-                                ` : state.chatMessages.map(msg => `
-                                    <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in">
-                                        <div class="max-w-[85%] ${msg.role === 'user' ? 'bg-white/10 text-white border-white/20' : 'bg-black/40 text-white/90 border-white/5'} rounded-2xl px-6 py-4 border text-sm leading-relaxed shadow-lg">
-                                            ${msg.role === 'model' ? marked.parse(msg.text) : msg.text}
-                                        </div>
-                                    </div>
-                                `).join('')}
+                                ` : state.chatMessages.map(msg => `<div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in"><div class="max-w-[85%] ${msg.role === 'user' ? 'bg-white/10 text-white border-white/20' : 'bg-black/40 text-white/90 border-white/5'} rounded-2xl px-6 py-4 border text-sm leading-relaxed shadow-lg">${msg.role === 'model' ? marked.parse(msg.text) : msg.text}</div></div>`).join('')}
                                 ${state.chatLoading ? `<div class="flex justify-start"><div class="text-white/40 px-6 py-4 text-xs tracking-widest animate-pulse">THINKING...</div></div>` : ''}
                             </div>
-                            
-                            <div class="p-6 md:p-8 pt-0">
-                                <div class="relative">
-                                    <input type="text" id="chat-input" 
-                                        class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 pr-14 text-white focus:outline-none focus:border-white/30 transition-all placeholder-white/20 font-light"
-                                        placeholder="Ask 1down..."
-                                        onkeypress="if(event.key === 'Enter') window.sendChatMessage()"
-                                    >
-                                    <button onclick="window.sendChatMessage()" class="absolute right-3 top-3 p-2.5 bg-white/10 rounded-xl hover:bg-white hover:text-black text-white transition-all">
-                                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
-                                    </button>
-                                </div>
-                            </div>
+                            <div class="p-6 md:p-8 pt-0"><div class="relative"><input type="text" id="chat-input" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 pr-14 text-white focus:outline-none focus:border-white/30 transition-all placeholder-white/20 font-light" placeholder="Ask 1down..." onkeypress="if(event.key === 'Enter') window.sendChatMessage()"><button onclick="window.sendChatMessage()" class="absolute right-3 top-3 p-2.5 bg-white/10 rounded-xl hover:bg-white hover:text-black text-white transition-all"><i data-lucide="arrow-up" class="w-5 h-5"></i></button></div></div>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function renderPeacekeeper() {
+             return `
+                <div class="layout-wrapper justify-center animate-fade-in">
+                     <div class="text-center mb-12">
+                        <h2 class="text-4xl font-poster text-white text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">THE PEACEKEEPER</h2>
+                        <p class="text-xs text-white/50 tracking-widest mt-2 uppercase">Couples Mode</p>
+                    </div>
+                    
+                    <div class="w-full max-w-md space-y-6 bg-black/40 border border-white/10 p-8 rounded-3xl shadow-2xl">
+                        <div class="space-y-2">
+                            <label class="text-[10px] uppercase tracking-widest text-cyan-400 font-bold">Person A (e.g. Horror)</label>
+                            <input type="text" id="pk-input-a" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 transition-colors outline-none">
+                        </div>
+                         <div class="flex justify-center"><i data-lucide="plus" class="text-white/20"></i></div>
+                         <div class="space-y-2">
+                            <label class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Person B (e.g. Romance)</label>
+                            <input type="text" id="pk-input-b" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500 transition-colors outline-none">
+                        </div>
+                        <button onclick="window.handlePeacekeeperSubmit()" class="w-full py-4 peace-btn text-white font-poster font-bold text-sm tracking-widest rounded-xl shadow-lg hover:scale-105 transition-all mt-4">MERGE TASTES</button>
+                    </div>
+                </div>
+             `;
         }
 
         function renderLanding() {
@@ -840,20 +982,31 @@
                         </h2>
                         <p class="text-lg text-white/50 leading-relaxed font-light max-w-lg mx-auto">
                             The average human spends <strong class="text-white font-normal">1.3 years</strong> deciding what to watch. 
-                            We fixed that. No algorithms. Just legends.
+                            We fixed that.
                         </p>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-6 w-full max-w-md z-10">
-                        <button onclick="window.navigate('language')" class="flex-1 py-6 bg-white text-black font-poster font-bold text-lg tracking-[0.15em] hover:bg-gray-200 transition-all transform hover:-translate-y-1 shadow-2xl shadow-white/5">
+                        <button onclick="window.navigate('language')" onmouseenter="window.playHover()" onclick="window.playClick()" class="flex-1 py-6 bg-white text-black font-poster font-bold text-lg tracking-[0.15em] hover:bg-gray-200 transition-all transform hover:-translate-y-1 shadow-2xl shadow-white/5">
                             START HUNT
                         </button>
-                         <button onclick="window.imFeelingLucky()" class="flex-1 py-6 border border-white/20 text-white font-poster font-bold text-lg tracking-[0.15em] hover:bg-white/5 transition-all transform hover:-translate-y-1">
-                            LUCKY PICK
+                         <div class="flex-1 flex flex-col gap-2">
+                             <button onclick="window.imFeelingLucky()" onmouseenter="window.playHover()" onclick="window.playClick()" class="w-full py-3 border border-white/20 text-white font-poster font-bold text-sm tracking-[0.15em] hover:bg-white/5 transition-all">
+                                LUCKY PICK
+                            </button>
+                             <button onclick="window.startCineSwipe()" onmouseenter="window.playHover()" onclick="window.playClick()" class="w-full py-3 cineswipe-btn text-white font-poster font-bold text-sm tracking-[0.15em] hover:scale-105 transition-all shadow-lg shadow-pink-500/20">
+                                CINESWIPE
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-12 w-full flex justify-center">
+                         <button onclick="window.startPeacekeeper()" class="text-xs text-cyan-400 hover:text-cyan-300 tracking-widest uppercase border-b border-cyan-500/30 hover:border-cyan-500 pb-1 transition-all">
+                            Couples Mode
                         </button>
                     </div>
                     
-                    <div class="mt-24 border-t border-white/5 w-full pt-8 flex justify-center gap-8 opacity-30 hover:opacity-60 transition-opacity cursor-default">
+                    <div class="mt-12 border-t border-white/5 w-full pt-8 flex justify-center gap-8 opacity-30 hover:opacity-60 transition-opacity cursor-default">
                         <i data-lucide="film" class="w-6 h-6"></i>
                         <i data-lucide="clapperboard" class="w-6 h-6"></i>
                         <i data-lucide="tv" class="w-6 h-6"></i>
@@ -863,7 +1016,7 @@
         }
 
         function renderLoader() {
-            const text = state.isSmartSearching ? "Zarah is thinking..." : "Scanning Database...";
+            const text = state.isSmartSearching ? "Finding Super Match..." : (state.luckyMode ? "Consulting the chaos engine..." : "Scanning database...");
             return `
                 <div class="layout-wrapper justify-center items-center">
                     <div class="relative flex items-center justify-center w-64 h-64">
@@ -883,32 +1036,33 @@
             if (state.isAnimating || state.isSmartSearching) return renderLoader();
             const m = state.recommendation;
             if(!m) return `<div class="layout-wrapper justify-center">Error</div>`;
-            
             const isSaved = state.watchlist.some(w => w.title === m.title);
+            const provider = getStreamingProvider(m.title);
             
             return `
                 <div class="layout-wrapper pt-32 pb-32">
                     <div class="w-full max-w-xl mx-auto bg-[#050505] border border-white/10 shadow-2xl shadow-black overflow-hidden relative group animate-fade-in">
-                        
-                        <!-- Top Meta -->
                         <div class="p-8 border-b border-white/5 flex justify-between items-start bg-gradient-to-b from-white/5 to-transparent">
-                            <div>
-                                <span class="text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2 block">IMDb Rating</span>
-                                <span class="text-6xl font-poster text-white">${m.rating}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="block text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2">${m.year}</span>
-                                <span class="inline-block px-3 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${m.lang || 'Unknown'}</span>
-                                ${m.isAiGenerated ? '<span class="block mt-2 text-[8px] text-red-500 font-bold tracking-widest uppercase">✨ AI Pick</span>' : ''}
-                            </div>
+                            <div><span class="text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2 block">IMDb Rating</span><span class="text-6xl font-poster text-white">${m.rating}</span></div>
+                            <div class="text-right"><span class="block text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2">${m.year}</span><span class="inline-block px-3 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${m.lang || 'Unknown'}</span>${m.isAiGenerated ? '<span class="block mt-2 text-[8px] text-red-500 font-bold tracking-widest uppercase">✨ AI Pick</span>' : ''}</div>
                         </div>
-
-                        <!-- Title & Actions -->
                         <div class="py-16 px-8 text-center relative">
                             <h1 class="text-5xl md:text-6xl font-poster font-bold text-white leading-[0.9] tracking-tight uppercase mb-8 break-words">${m.title}</h1>
                             <p class="text-sm md:text-base text-white/60 font-light leading-relaxed max-w-sm mx-auto mb-10">"${m.desc}"</p>
                             
-                            <!-- AI Buttons Grid -->
+                            <!-- Feature 2: One-Tap Watch (Replaces Static Text) -->
+                             <div class="flex justify-center mb-8">
+                                ${provider ? 
+                                    `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all group">
+                                        <span class="text-[10px] uppercase tracking-widest text-white/40 group-hover:text-white/70">Watch on</span>
+                                        <span class="text-[10px] uppercase tracking-widest font-bold ${provider.color} flex items-center gap-1">${provider.name} <i data-lucide="external-link" class="w-3 h-3"></i></span>
+                                    </button>` : 
+                                    `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all">
+                                        <span class="text-[10px] uppercase tracking-widest text-white/40">Find Streaming</span><i data-lucide="search" class="w-3 h-3 text-white/40"></i>
+                                    </button>`
+                                }
+                            </div>
+
                             <div class="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto mb-8">
                                 ${renderAiButton('pitch', 'sparkles', 'text-purple-400', 'Pitch')}
                                 ${renderAiButton('trivia', 'lightbulb', 'text-yellow-400', 'Trivia')}
@@ -920,27 +1074,10 @@
                                 ${renderAiButton('sequel', 'clapperboard', 'text-pink-500', 'Sequel')}
                                 ${renderAiButton('theory', 'brain', 'text-teal-500', 'Theory')}
                             </div>
-
-                            <!-- AI Content Display -->
-                            ${state.aiContent ? `
-                                <div class="max-w-sm mx-auto animate-fade-in bg-white/5 p-6 border border-white/10 text-sm font-medium text-white/80 italic border-l-2 border-l-${getColorForType(state.aiType)} relative ai-shimmer text-left mb-8">
-                                    <button onclick="window.clearAiContent()" class="absolute top-2 right-3 text-white/30 hover:text-white transition-colors">✕</button>
-                                    "${state.aiContent}"
-                                </div>
-                            ` : ''}
-
-                            <div class="flex gap-4 justify-center">
-                                <button onclick="window.handleTrailer('${m.trailerId}', '${m.title.replace(/'/g, "\\'")}', '${m.year}')" class="px-8 py-4 bg-white text-black font-poster tracking-wider text-sm hover:bg-gray-200 transition-colors">TRAILER</button>
-                                <button onclick="window.handleSave()" class="px-8 py-4 border border-white/20 text-white font-poster tracking-wider text-sm hover:bg-white/10 transition-colors">
-                                    ${isSaved ? 'SAVED' : 'ARCHIVE'}
-                                </button>
-                            </div>
+                            ${state.aiContent ? `<div class="max-w-sm mx-auto animate-fade-in bg-white/5 p-6 border border-white/10 text-sm font-medium text-white/80 italic border-l-2 border-l-${getColorForType(state.aiType)} relative ai-shimmer text-left mb-8"><button onclick="window.clearAiContent()" class="absolute top-2 right-3 text-white/30 hover:text-white transition-colors">✕</button>"${state.aiContent}"</div>` : ''}
+                            <div class="flex gap-4 justify-center"><button onclick="window.handleTrailer('${m.trailerId}', '${m.title.replace(/'/g, "\\'")}', '${m.year}')" class="px-8 py-4 bg-white text-black font-poster tracking-wider text-sm hover:bg-gray-200 transition-colors">TRAILER</button><button onclick="window.handleSave()" class="px-8 py-4 border border-white/20 text-white font-poster tracking-wider text-sm hover:bg-white/10 transition-colors">${isSaved ? 'SAVED' : 'ARCHIVE'}</button></div>
                         </div>
-
-                        <!-- Spin Again Footer -->
-                        <button onclick="window.triggerPick()" class="w-full py-5 bg-[#0a0a0a] border-t border-white/10 text-white/40 font-poster tracking-[0.2em] text-xs hover:text-white hover:bg-white/5 transition-colors">
-                            SPIN AGAIN
-                        </button>
+                        <button onclick="window.triggerPick()" class="w-full py-5 bg-[#0a0a0a] border-t border-white/10 text-white/40 font-poster tracking-[0.2em] text-xs hover:text-white hover:bg-white/5 transition-colors">SPIN AGAIN</button>
                     </div>
                 </div>
             `;
@@ -948,45 +1085,43 @@
         
         function renderAiButton(type, icon, colorClass, label) {
             const isLoading = state.aiLoading && state.aiType === type;
-            return `<button onclick="window.triggerAiAction('${type}')" class="flex flex-col items-center justify-center p-3 border border-white/5 bg-white/[0.02] hover:bg-white/10 hover:border-white/20 transition-all group" ${state.aiLoading ? 'disabled' : ''}>${isLoading ? `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-white/50"></i>` : `<i data-lucide="${icon}" class="w-4 h-4 ${colorClass} group-hover:scale-110 transition-transform"></i>`}<span class="text-[8px] uppercase tracking-widest text-white/30 mt-2 group-hover:text-white/70 transition-colors">${label}</span></button>`;
+            return `<button onclick="window.triggerAiAction('${type}')" onmouseenter="window.playHover()" class="flex flex-col items-center justify-center p-3 border border-white/5 bg-white/[0.02] hover:bg-white/10 hover:border-white/20 transition-all group" ${state.aiLoading ? 'disabled' : ''}>${isLoading ? `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-white/50"></i>` : `<i data-lucide="${icon}" class="w-4 h-4 ${colorClass} group-hover:scale-110 transition-transform"></i>`}<span class="text-[8px] uppercase tracking-widest text-white/30 mt-2 group-hover:text-white/70 transition-colors">${label}</span></button>`;
         }
 
         function getColorForType(type) { return {pitch:'purple-500', trivia:'yellow-500', roast:'orange-500', recast:'blue-500', quote:'green-500', snack:'red-500', easteregg:'indigo-500', sequel:'pink-500', theory:'teal-500'}[type] || 'white'; }
 
         function renderWatchlist() {
             const list = state.watchlist;
+            // Feature 3: Cinema DNA Stats Calculation
+            let topGenre = "N/A";
+            let avgRating = 0;
+            if (list.length > 0) {
+                const genres = {};
+                list.forEach(m => genres[m.genre] = (genres[m.genre] || 0) + 1);
+                topGenre = Object.keys(genres).reduce((a, b) => genres[a] > genres[b] ? a : b).toUpperCase();
+                avgRating = (list.reduce((acc, m) => acc + parseFloat(m.rating), 0) / list.length).toFixed(1);
+            }
+
             return `
                 <div class="layout-wrapper">
                     <div class="w-full max-w-2xl">
-                         <div class="flex items-center justify-between border-b border-white/10 pb-8 mb-8">
-                            <h2 class="text-4xl font-poster text-white">ARCHIVES</h2>
-                            <span class="text-sm font-mono text-red-500 tracking-widest">0${list.length}</span>
-                        </div>
-                        ${list.length === 0 ? `
-                            <div class="flex flex-col items-center justify-center text-center opacity-30 py-20">
-                                <i data-lucide="film" class="w-16 h-16 mb-6 stroke-1"></i>
-                                <p class="font-poster text-2xl tracking-wide">NO RECORDS FOUND</p>
+                         <div class="flex items-center justify-between border-b border-white/10 pb-8 mb-8"><h2 class="text-4xl font-poster text-white">ARCHIVES</h2><span class="text-sm font-mono text-red-500 tracking-widest">0${list.length}</span></div>
+                        
+                        ${list.length > 0 ? `
+                            <!-- Feature 3: Cinema DNA Dashboard -->
+                            <div class="grid grid-cols-2 gap-4 mb-8 animate-fade-in">
+                                <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                                    <p class="text-[10px] uppercase tracking-widest text-white/40 mb-1">Top Vibe</p>
+                                    <p class="font-poster text-xl text-white">${topGenre}</p>
+                                </div>
+                                <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                                    <p class="text-[10px] uppercase tracking-widest text-white/40 mb-1">Avg Quality</p>
+                                    <p class="font-poster text-xl text-yellow-500">${avgRating}</p>
+                                </div>
                             </div>
-                        ` : `
-                            <div class="space-y-2">
-                                ${list.map(m => `
-                                    <div class="group py-6 border-b border-white/5 flex items-center justify-between hover:bg-white/5 px-4 transition-colors">
-                                        <div>
-                                            <h3 class="font-poster text-xl text-white tracking-wide mb-1">${m.title}</h3>
-                                            <div class="flex items-center gap-3 text-[10px] font-bold text-white/40 uppercase tracking-wider">
-                                                <span>${m.year}</span>
-                                                <span class="text-red-800">•</span>
-                                                <span>${m.rating}</span>
-                                                ${m.isAiGenerated ? '<span class="text-purple-500/50 ml-2">AI</span>' : ''}
-                                            </div>
-                                        </div>
-                                        <button onclick="window.handleRemove('${m.id}')" class="text-white/10 hover:text-red-500 transition-colors p-2">
-                                            <i data-lucide="x" class="w-5 h-5"></i>
-                                        </button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `}
+                        ` : ''}
+
+                        ${list.length === 0 ? `<div class="flex flex-col items-center justify-center text-center opacity-30 py-20"><i data-lucide="film" class="w-16 h-16 mb-6 stroke-1"></i><p class="font-poster text-2xl tracking-wide">NO RECORDS FOUND</p></div>` : `<div class="space-y-2">${list.map(m => `<div class="group py-6 border-b border-white/5 flex items-center justify-between hover:bg-white/5 px-4 transition-colors"><div><h3 class="font-poster text-xl text-white tracking-wide mb-1">${m.title}</h3><div class="flex items-center gap-3 text-[10px] font-bold text-white/40 uppercase tracking-wider"><span>${m.year}</span><span class="text-red-800">•</span><span>${m.rating}</span>${m.isAiGenerated ? '<span class="text-purple-500/50 ml-2">AI</span>' : ''}</div></div><button onclick="window.handleRemove('${m.id}')" class="text-white/10 hover:text-red-500 transition-colors p-2"><i data-lucide="x" class="w-5 h-5"></i></button></div>`).join('')}</div>`}
                     </div>
                 </div>
             `;
@@ -995,20 +1130,51 @@
         function renderSelection(title, step, items, onClick) {
              return `
                 <div class="layout-wrapper justify-center">
-                    <div class="text-center mb-12">
-                        <p class="text-red-600 text-xs font-bold tracking-[0.4em] mb-4 uppercase">Step 0${step}</p>
-                        <h2 class="text-5xl font-poster text-white">${title}</h2>
-                    </div>
+                    <div class="text-center mb-12"><p class="text-red-600 text-xs font-bold tracking-[0.4em] mb-4 uppercase">Step 0${step}</p><h2 class="text-5xl font-poster text-white">${title}</h2></div>
                     <div class="grid grid-cols-2 gap-6 w-full max-w-2xl">
-                        ${items.map(item => `
-                            <button onclick="${onClick}('${item.id}')" class="glass-panel p-8 hover:bg-white/5 transition-all duration-500 group text-left border border-white/5 hover:border-red-600/50 relative overflow-hidden">
-                                <div class="flex items-center justify-between relative z-10">
-                                    <h3 class="text-2xl font-poster text-white group-hover:text-red-500 transition-colors">${item.label}</h3>
-                                    ${item.icon ? `<i data-lucide="${item.icon}" class="w-6 h-6 text-white/20 group-hover:text-white transition-colors"></i>` : ''}
+                        ${items.map(item => `<button onclick="${onClick}('${item.id}')" onmouseenter="window.playHover()" class="glass-panel p-8 hover:bg-white/5 transition-all duration-500 group text-left border border-white/5 hover:border-red-600/50 relative overflow-hidden"><div class="flex items-center justify-between relative z-10"><h3 class="text-2xl font-poster text-white group-hover:text-red-500 transition-colors">${item.label}</h3>${item.icon ? `<i data-lucide="${item.icon}" class="w-6 h-6 text-white/20 group-hover:text-white transition-colors"></i>` : ''}</div>${item.native ? `<span class="text-[80px] font-poster absolute -bottom-6 -right-2 text-white/5 group-hover:text-white/10 transition-colors z-0 pointer-events-none">${item.native}</span>` : ''}</button>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderCineSwipe() {
+            if (state.isSmartSearching) return renderLoader();
+            
+            const movie = state.swipeDeck[state.currentCardIndex];
+            const progress = state.likedMovies.length;
+            
+            return `
+                <div class="layout-wrapper justify-center animate-fade-in">
+                    <div class="text-center mb-8">
+                        <h2 class="text-4xl font-poster text-white">CINESWIPE</h2>
+                        <p class="text-xs text-white/50 tracking-widest mt-2">MATCHES: <span class="text-red-500 font-bold text-lg">${progress}/3</span></p>
+                    </div>
+                    
+                    <div class="relative w-full max-w-sm h-[500px]">
+                         ${state.swipeDeck.slice(state.currentCardIndex + 1, state.currentCardIndex + 3).reverse().map((m, i) => `
+                            <div class="absolute inset-0 bg-gray-900 border border-white/5 rounded-3xl shadow-xl transform scale-${95 - i*5} translate-y-${i*10} opacity-50 z-0"></div>
+                         `).join('')}
+                    
+                        <div id="swipe-card" class="absolute inset-0 bg-[#0a0a0a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col">
+                             <div class="flex-1 p-8 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white/5 to-transparent">
+                                <h1 class="text-4xl font-poster text-white leading-tight mb-4">${movie.title}</h1>
+                                <div class="flex gap-3 justify-center mb-6">
+                                    <span class="px-3 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${movie.year}</span>
+                                    <span class="px-3 py-1 bg-white/10 text-[10px] font-bold text-white uppercase tracking-widest">${movie.genre}</span>
                                 </div>
-                                ${item.native ? `<span class="text-[80px] font-poster absolute -bottom-6 -right-2 text-white/5 group-hover:text-white/10 transition-colors z-0 pointer-events-none">${item.native}</span>` : ''}
-                            </button>
-                        `).join('')}
+                                <p class="text-sm text-white/60 font-light leading-relaxed line-clamp-4">"${movie.desc}"</p>
+                             </div>
+                             
+                             <div class="p-8 bg-[#050505] border-t border-white/5 grid grid-cols-2 gap-4">
+                                 <button onclick="window.handleSwipe('left')" class="py-4 rounded-xl border border-white/10 hover:bg-white/5 text-white/50 hover:text-white transition-all flex justify-center">
+                                     <i data-lucide="x" class="w-8 h-8"></i>
+                                 </button>
+                                 <button onclick="window.handleSwipe('right')" class="py-4 rounded-xl bg-white text-black hover:bg-gray-200 transition-all flex justify-center shadow-lg shadow-white/10">
+                                     <i data-lucide="heart" class="w-8 h-8 fill-black"></i>
+                                 </button>
+                             </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1016,11 +1182,14 @@
 
         // --- CORE ---
         function render() {
+            resetDoomScrollTimer();
             const isLanding = state.view === 'landing';
             navControls.classList.toggle('hidden', isLanding || state.view === 'ai-chat');
             
             let content = '';
             if (state.view === 'ai-chat') content = renderAiChat();
+            else if (state.view === 'cineswipe') content = renderCineSwipe();
+            else if (state.view === 'peacekeeper') content = renderPeacekeeper();
             else if (state.view === 'landing') content = renderLanding();
             else if (state.view === 'language') content = renderSelection('Select Region', '1', languages, 'window.selectLanguage');
             else if (state.view === 'genre') content = renderSelection('Select Mood', '2', genres, 'window.selectGenre');
@@ -1039,11 +1208,11 @@
         }
 
         // --- WINDOW EXPORTS ---
-        window.navigate = (v) => { state.view = v; state.luckyMode = false; render(); };
+        window.navigate = (v) => { state.view = v; state.luckyMode = false; appAudio.playClick(); render(); };
         window.imFeelingLucky = () => { state.luckyMode = true; pickMovie(); };
-        window.selectLanguage = (id) => { state.lang = languages.find(l=>l.id===id); state.view = 'genre'; render(); };
-        window.selectGenre = (id) => { state.genre = genres.find(g=>g.id===id); state.view = 'era'; render(); };
-        window.selectEra = (id) => { state.era = eras.find(e=>e.id===id); triggerPick(); };
+        window.selectLanguage = (id) => { state.lang = languages.find(l=>l.id===id); state.view = 'genre'; appAudio.playClick(); render(); };
+        window.selectGenre = (id) => { state.genre = genres.find(g=>g.id===id); state.view = 'era'; appAudio.playClick(); render(); };
+        window.selectEra = (id) => { state.era = eras.find(e=>e.id===id); appAudio.playClick(); triggerPick(); };
         window.triggerPick = () => { pickMovie(); };
         window.handleSave = () => { if(state.recommendation) addToWatchlist(state.recommendation); };
         window.handleRemove = (id) => removeFromWatchlist(id);
@@ -1056,29 +1225,47 @@
         window.sendChatMessage = sendChatMessage;
         window.clearChat = () => { state.chatMessages = []; saveChatHistory(); render(); };
         window.toggleVoiceCommand = toggleVoiceCommand;
+        window.closeIntervention = () => { interventionModal.classList.add('hidden'); if(state.doomScrollTimer) clearTimeout(state.doomScrollTimer); };
+        window.acceptIntervention = () => { window.closeIntervention(); window.imFeelingLucky(); };
         
         window.openScanner = openScanner;
         window.closeScanner = closeScanner;
         window.captureMood = captureMood;
         window.handleImageUpload = handleImageUpload;
+        
+        // New Feature Exports
+        window.startCineSwipe = startCineSwipe;
+        window.handleSwipe = handleSwipe;
+        window.startPeacekeeper = startPeacekeeper;
+        window.handlePeacekeeperSubmit = handlePeacekeeperSubmit;
+        window.openStreamingLink = openStreamingLink;
+        
+        window.initAudioContext = () => { appAudio.init(); if(appAudio.ctx && appAudio.ctx.state === 'suspended') appAudio.ctx.resume(); };
+        window.toggleMute = () => { state.audioEnabled = !state.audioEnabled; const btn = document.getElementById('btn-audio'); if(btn) btn.innerHTML = state.audioEnabled ? '<i data-lucide="volume-2" class="w-5 h-5"></i>' : '<i data-lucide="volume-x" class="w-5 h-5 text-red-500"></i>'; lucide.createIcons(); };
+        window.playHover = () => appAudio.playHover();
+        window.playClick = () => appAudio.playClick();
 
         // Listeners
         if(btnBack) {
             btnBack.addEventListener('click', () => {
                 if (state.view === 'ai-chat') { window.navigate('landing'); return; }
                 if (state.luckyMode) { state.view = 'landing'; state.luckyMode = false; render(); return; }
+                if (state.view === 'cineswipe') { state.view = 'landing'; render(); return; }
+                if (state.view === 'peacekeeper') { state.view = 'landing'; render(); return; }
+                
                 const views = ['landing', 'language', 'genre', 'era', 'result'];
                 const currIdx = views.indexOf(state.view);
                 if(currIdx > 0) state.view = views[currIdx - 1];
                 if(state.view === 'watchlist') state.view = 'landing';
                 if (state.view === 'genre' && !state.lang) state.view = 'language';
                 if (state.view === 'era' && !state.genre) state.view = 'genre';
+                appAudio.playClick();
                 render();
             });
         }
         
         const btnHome = document.getElementById('btn-home');
-        if(btnHome) btnHome.addEventListener('click', () => { state.view = 'landing'; render(); });
+        if(btnHome) btnHome.addEventListener('click', () => { state.view = 'landing'; appAudio.playClick(); render(); });
 
         closeCinemaBtn.addEventListener('click', () => {
             cinemaModal.classList.add('hidden');
@@ -1093,4 +1280,3 @@
     </script>
 </body>
 </html>
-
