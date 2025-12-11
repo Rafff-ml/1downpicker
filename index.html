@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1downpicker - Premiere</title>
     
+    <!-- Favicon (1D Logo) -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='40' height='40' rx='8' fill='%23E50914'/%3E%3Cpath d='M14 12V28M14 14L10 16M26 12V20L30 20V28L26 28V20L22 20V12H26Z' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" type="image/svg+xml">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -66,6 +69,11 @@
             100% { transform: rotate(360deg); }
         }
         
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
         @keyframes swipeRight {
             to { transform: translateX(150%) rotate(10deg); opacity: 0; }
         }
@@ -82,11 +90,6 @@
             animation: shimmer 2.5s infinite linear;
             background: linear-gradient(to right, rgba(255,255,255,0.02) 4%, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.02) 36%);
             background-size: 1000px 100%;
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
         }
 
         /* Utility */
@@ -286,7 +289,11 @@
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- CONFIG ---
-        const apiKey = ""; 
+        // 1. INSERT YOUR GEMINI API KEY HERE
+        //c
+        
+        // 2. INSERT YOUR TMDB API KEY HERE (V3 Auth)
+        const tmdbApiKey = "776ceea3804709601426d6d401651216"; 
         
         let firebaseConfig;
         let appId = 'default-app-id';
@@ -296,6 +303,9 @@
             firebaseConfig = JSON.parse(__firebase_config);
             appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        } else {
+            // 3. INSERT YOUR FIREBASE CONFIG HERE FOR LOCAL USE
+            // firebaseConfig = { apiKey: "...", ... };
         }
 
         let auth, db, user;
@@ -397,50 +407,18 @@
         };
 
         // --- CORE DATA ---
-        const languages = [ { id: 'english', label: 'English', native: 'EN' }, { id: 'telugu', label: 'Telugu', native: 'TE' }, { id: 'hindi', label: 'Hindi', native: 'HI' }, { id: 'kannada', label: 'Kannada', native: 'KA' } ];
-        const genres = [ { id: 'action', label: 'Action', icon: 'swords' }, { id: 'comedy', label: 'Comedy', icon: 'laugh' }, { id: 'drama', label: 'Drama', icon: 'drama' }, { id: 'thriller', label: 'Thriller', icon: 'eye' }, { id: 'romance', label: 'Romance', icon: 'heart' }, { id: 'horror', label: 'Horror', icon: 'ghost' } ];
+        const languages = [ { id: 'english', label: 'English', native: 'EN', tmdbCode: 'en' }, { id: 'telugu', label: 'Telugu', native: 'TE', tmdbCode: 'te' }, { id: 'hindi', label: 'Hindi', native: 'HI', tmdbCode: 'hi' }, { id: 'kannada', label: 'Kannada', native: 'KA', tmdbCode: 'kn' } ];
+        const genres = [ { id: 'action', label: 'Action', icon: 'swords', tmdbId: 28 }, { id: 'comedy', label: 'Comedy', icon: 'laugh', tmdbId: 35 }, { id: 'drama', label: 'Drama', icon: 'drama', tmdbId: 18 }, { id: 'thriller', label: 'Thriller', icon: 'eye', tmdbId: 53 }, { id: 'romance', label: 'Romance', icon: 'heart', tmdbId: 10749 }, { id: 'horror', label: 'Horror', icon: 'ghost', tmdbId: 27 } ];
         const eras = [ { id: 'modern', label: 'Modern Era', sub: '2000 - Present', icon: 'zap' }, { id: 'classic', label: 'Golden Age', sub: 'Pre-2000', icon: 'disc' } ];
         
-        // FULL DATABASE RESTORED
+        // FALLBACK LOCAL DATABASE (If TMDB API Key is missing)
         const movies = [
-             { lang: 'english', genre: 'action', title: "Mad Max: Fury Road", year: 2015, rating: "8.1", trailerId: "hEJnMQG9ev8", desc: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler." },
-             { lang: 'english', genre: 'action', title: "The Matrix", year: 1999, rating: "8.7", trailerId: "vKQi3bBA1y8", desc: "A computer hacker learns the world is a simulation created by machines." },
-             { lang: 'english', genre: 'action', title: "Die Hard", year: 1988, rating: "8.2", trailerId: "jaJuwKCmJbY", desc: "An NYPD officer tries to save his wife taken hostage by German terrorists." },
-             { lang: 'english', genre: 'action', title: "Top Gun: Maverick", year: 2022, rating: "8.3", trailerId: "giXco2jaZ_4", desc: "After thirty years, Maverick is still pushing the envelope as a top naval aviator." },
-             { lang: 'english', genre: 'action', title: "Terminator 2", year: 1991, rating: "8.6", trailerId: "lwSysg9o7wE", desc: "A cyborg, identical to the one who failed to kill Sarah Connor, must now protect her teenage son." },
-             { lang: 'english', genre: 'comedy', title: "Superbad", year: 2007, rating: "7.6", trailerId: "4eaZ_48ZYog", desc: "Two co-dependent high school seniors are forced to deal with separation anxiety." },
-             { lang: 'english', genre: 'comedy', title: "Airplane!", year: 1980, rating: "7.7", trailerId: "07pPmCfKi3U", desc: "A man afraid to fly must ensure that a plane lands safely after the pilots become sick." },
-             { lang: 'english', genre: 'drama', title: "The Godfather", year: 1972, rating: "9.2", trailerId: "sY1S34973zA", desc: "The aging patriarch of an organized crime dynasty transfers control to his reluctant son." },
-             { lang: 'english', genre: 'drama', title: "Oppenheimer", year: 2023, rating: "8.5", trailerId: "uYPbbksJxIg", desc: "The story of American scientist J. Robert Oppenheimer." },
-             { lang: 'english', genre: 'thriller', title: "Inception", year: 2010, rating: "8.8", trailerId: "YoHD9XEInc0", desc: "A thief who steals corporate secrets through dream-sharing technology." },
-             { lang: 'english', genre: 'thriller', title: "Se7en", year: 1995, rating: "8.6", trailerId: "znmZoVkCjpI", desc: "Two detectives, a rookie and a veteran, hunt a serial killer who uses the seven deadly sins." },
-             { lang: 'english', genre: 'horror', title: "The Shining", year: 1980, rating: "8.4", trailerId: "S014oGZiSdI", desc: "A family heads to an isolated hotel for the winter where a sinister presence influences the father." },
-             { lang: 'english', genre: 'horror', title: "Alien", year: 1979, rating: "8.5", trailerId: "LjLamj-b0I8", desc: "The crew of a commercial spacecraft encounter a deadly lifeform." },
-             { lang: 'telugu', genre: 'action', title: "RRR", year: 2022, rating: "7.8", trailerId: "NgBoMJy386M", desc: "A fearless revolutionary and an officer in the British force decide to join forces." },
-             { lang: 'telugu', genre: 'action', title: "Pokiri", year: 2006, rating: "8.0", trailerId: "oD7p6u1aXj4", desc: "A money-minded criminal joins a gang, but he has a hidden agenda." },
-             { lang: 'telugu', genre: 'comedy', title: "Jathi Ratnalu", year: 2021, rating: "7.3", trailerId: "z8p4-h6zGf8", desc: "Three happy-go-lucky friends move to Hyderabad for a better life but get framed." },
-             { lang: 'telugu', genre: 'drama', title: "Mahanati", year: 2018, rating: "8.5", trailerId: "5Y8Wk-g12oQ", desc: "The biography of Savitri, an actress who ruled the South Indian film industry." },
-             { lang: 'telugu', genre: 'drama', title: "Mayabazar", year: 1957, rating: "9.1", trailerId: null, desc: "A classic mythological tale of Lord Krishna and Ghatotkacha." },
-             { lang: 'telugu', genre: 'thriller', title: "Evaru", year: 2019, rating: "8.2", trailerId: "7F-fX9d2z6k", desc: "A sub-inspector investigates a high-profile murder case with twisting secrets." },
-             { lang: 'telugu', genre: 'thriller', title: "Kshana Kshanam", year: 1991, rating: "8.2", trailerId: null, desc: "A petty thief and an innocent young woman get caught in a bank robbery crossfire." },
-             { lang: 'telugu', genre: 'horror', title: "Arundhati", year: 2009, rating: "7.3", trailerId: "0T32p26k7v0", desc: "A brave queen battles an evil mystic." },
-             { lang: 'telugu', genre: 'horror', title: "Virupaksha", year: 2023, rating: "7.2", trailerId: "8f6_T_0u3a0", desc: "Mysterious deaths occur in a village due to an unknown person's occult practice." },
-             { lang: 'hindi', genre: 'action', title: "Sholay", year: 1975, rating: "8.1", trailerId: "hLw9c0J1s4o", desc: "A former police officer enlists two outlaws to capture a bandit." },
-             { lang: 'hindi', genre: 'action', title: "Gangs of Wasseypur", year: 2012, rating: "8.2", trailerId: "j-AkWDkDYqw", desc: "A clash between Sultan and Shahid Khan leads to the expulsion of Khan from Wasseypur." },
-             { lang: 'hindi', genre: 'comedy', title: "Hera Pheri", year: 2000, rating: "8.1", trailerId: "PTg_V0S1u3E", desc: "Three unemployed men find the answer to all their money problems via a wrong number." },
-             { lang: 'hindi', genre: 'comedy', title: "3 Idiots", year: 2009, rating: "8.4", trailerId: "K0eDlFX9GMc", desc: "Two friends search for their long lost companion who inspired them to think differently." },
-             { lang: 'hindi', genre: 'drama', title: "Lagaan", year: 2001, rating: "8.1", trailerId: "oSIGQ0YkFxs", desc: "Villagers in Victorian India stake their future on a game of cricket against British rulers." },
-             { lang: 'hindi', genre: 'drama', title: "Dangal", year: 2016, rating: "8.3", trailerId: "x_7YlGv9u1g", desc: "Former wrestler Mahavir Singh Phogat and his two wrestler daughters struggle towards glory." },
-             { lang: 'hindi', genre: 'thriller', title: "Drishyam", year: 2015, rating: "8.2", trailerId: "AuuX2j14NBg", desc: "Desperate measures are taken by a man who tries to save his family from the dark side of the law." },
-             { lang: 'hindi', genre: 'thriller', title: "Andhadhun", year: 2018, rating: "8.2", trailerId: "2iVYI99VGaw", desc: "A series of mysterious events change the life of a blind pianist." },
-             { lang: 'hindi', genre: 'horror', title: "Tumbbad", year: 2018, rating: "8.2", trailerId: "sN75MPxgvX8", desc: "A mythological story about a goddess who created the entire universe." },
-             { lang: 'kannada', genre: 'action', title: "K.G.F: Chapter 1", year: 2018, rating: "8.2", trailerId: "-KfsY-qwBS0", desc: "A gangster goes undercover as a slave to assassinate a mine owner." },
-             { lang: 'kannada', genre: 'action', title: "Kantara", year: 2022, rating: "8.3", trailerId: "88iIgJe9N_0", desc: "A young tribal reluctantly dons the traditions of his ancestors to seek justice." },
-             { lang: 'kannada', genre: 'comedy', title: "Kirik Party", year: 2016, rating: "8.3", trailerId: "IfvnbK-1-1-1", desc: "A group of engineering students experiences life, love, and heartbreak." },
-             { lang: 'kannada', genre: 'drama', title: "777 Charlie", year: 2022, rating: "8.8", trailerId: "9B5i_G22M_8", desc: "Dharma is stuck in a rut until a pup named Charlie enters his life." },
-             { lang: 'kannada', genre: 'thriller', title: "Rangitaranga", year: 2015, rating: "8.2", trailerId: "1D_M1h_g-vU", desc: "A couple visits an ancestral home and encounters strange occurrences." },
-             { lang: 'kannada', genre: 'thriller', title: "Lucia", year: 2013, rating: "8.3", trailerId: "D3-1-1-1-1", desc: "An usher in a movie theater suffering from insomnia is tricked into buying a drug." },
-             { lang: 'kannada', genre: 'horror', title: "Naagarahaavu", year: 1972, rating: "8.8", trailerId: null, desc: "A hot-tempered student's life spirals out of control. A timeless classic." }
+             { lang: 'english', genre: 'action', title: "Mad Max: Fury Road", year: 2015, rating: "8.1", desc: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler." },
+             { lang: 'english', genre: 'action', title: "The Matrix", year: 1999, rating: "8.7", desc: "A computer hacker learns the world is a simulation created by machines." },
+             { lang: 'english', genre: 'comedy', title: "Superbad", year: 2007, rating: "7.6", desc: "Two co-dependent high school seniors are forced to deal with separation anxiety." },
+             { lang: 'telugu', genre: 'action', title: "RRR", year: 2022, rating: "7.8", desc: "A fearless revolutionary and an officer in the British force decide to join forces." },
+             { lang: 'hindi', genre: 'action', title: "Sholay", year: 1975, rating: "8.1", desc: "A former police officer enlists two outlaws to capture a bandit." },
+             { lang: 'kannada', genre: 'action', title: "K.G.F: Chapter 1", year: 2018, rating: "8.2", desc: "A gangster goes undercover as a slave to assassinate a mine owner." }
         ];
 
         // --- DOM & HELPERS ---
@@ -519,41 +497,79 @@
             return providers[title.length % providers.length];
         }
         
-        // Feature 3: One-Tap Watch (Deep Search Link)
         function openStreamingLink(title) {
             const query = `watch ${title} streaming online`;
             window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
         }
 
-        // --- GEMINI ---
-        async function callGemini(prompt) {
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text;
-            } catch (e) { return null; }
-        }
+       async function callGemini(prompt) {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
+        const data = await response.json();
+        return data.text;
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
         
-        async function callGeminiWithImage(base64Image) {
-            const prompt = `Analyze facial mood. Recommend ONE movie. JSON: {"mood": "mood", "title": "Title", "year": 2000, "rating": "8.0", "desc": "Plot", "lang": "English", "genre": "Drama", "trailerId": null}`;
+       async function callGeminiWithImage(base64Image) {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/ai-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64Image })
+        });
+        const data = await response.json();
+        return data.text;
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
+        
+        // --- TMDB INTEGRATION ---
+        async function fetchMoviesFromTMDB(langId, genreId, eraId) {
+            if (!tmdbApiKey) return null;
+            
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
-                            ]
-                        }]
-                    })
-                });
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text;
-            } catch (e) { return null; }
+                const langCode = languages.find(l => l.id === langId)?.tmdbCode || 'en';
+                const genreCode = genres.find(g => g.id === genreId)?.tmdbId || '';
+                
+                let dateQuery = '';
+                if (eraId === 'modern') dateQuery = '&primary_release_date.gte=2000-01-01';
+                if (eraId === 'classic') dateQuery = '&primary_release_date.lte=1999-12-31';
+                
+                const url = `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&with_original_language=${langCode}&with_genres=${genreCode}${dateQuery}&sort_by=popularity.desc&page=1&vote_count.gte=100`;
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.results && data.results.length > 0) {
+                    // Pick a random movie from top 20 results
+                    const randomIdx = Math.floor(Math.random() * Math.min(data.results.length, 20));
+                    const movie = data.results[randomIdx];
+                    
+                    // Map to internal format
+                    return {
+                        title: movie.title,
+                        year: movie.release_date ? movie.release_date.split('-')[0] : 'N/A',
+                        rating: movie.vote_average.toFixed(1),
+                        desc: movie.overview,
+                        lang: langId,
+                        genre: genreId,
+                        trailerId: null, // We could fetch this with another call if needed
+                        posterPath: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
+                    };
+                }
+            } catch (e) {
+                console.error("TMDB Error:", e);
+            }
+            return null;
         }
 
         // --- DOOMSCROLL LOGIC ---
@@ -645,6 +661,7 @@
             }
             render();
         }
+
 
         // --- VOICE COMMAND LOGIC ---
         let recognition;
@@ -810,18 +827,25 @@
                  let rec = null;
                  
                  if (!state.luckyMode) {
-                     const filtered = movies.filter(m => {
-                        const matchesLang = m.lang === state.lang.id;
-                        const matchesGenre = m.genre === state.genre.id;
-                        const matchesEra = state.era.id === 'modern' ? m.year >= 2000 : m.year < 2000;
-                        return matchesLang && matchesGenre && matchesEra;
-                     });
-                     
-                     const currentTitle = state.recommendation?.title;
-                     const available = filtered.filter(m => m.title !== currentTitle);
-                     
-                     if (available.length > 0) {
-                         rec = available[Math.floor(Math.random() * available.length)];
+                     // PRIORITY: TRY TMDB API FIRST
+                     const tmdbRec = await fetchMoviesFromTMDB(state.lang.id, state.genre.id, state.era.id);
+                     if (tmdbRec) {
+                         rec = tmdbRec;
+                     } else {
+                         // FALLBACK: Local DB
+                         const filtered = movies.filter(m => {
+                            const matchesLang = m.lang === state.lang.id;
+                            const matchesGenre = m.genre === state.genre.id;
+                            const matchesEra = state.era.id === 'modern' ? m.year >= 2000 : m.year < 2000;
+                            return matchesLang && matchesGenre && matchesEra;
+                         });
+                         
+                         const currentTitle = state.recommendation?.title;
+                         const available = filtered.filter(m => m.title !== currentTitle);
+                         
+                         if (available.length > 0) {
+                             rec = available[Math.floor(Math.random() * available.length)];
+                         }
                      }
                  } else {
                      const currentTitle = state.recommendation?.title;
@@ -829,6 +853,7 @@
                      rec = available[Math.floor(Math.random() * available.length)];
                  }
 
+                 // AI Fallback if local DB exhausted or empty
                  if (!rec) {
                      const lang = state.lang ? state.lang.label : 'Any';
                      const genre = state.genre ? state.genre.label : 'Any';
@@ -1039,45 +1064,51 @@
             const isSaved = state.watchlist.some(w => w.title === m.title);
             const provider = getStreamingProvider(m.title);
             
+            // Use poster from TMDB if available
+            const bgStyle = m.posterPath ? `background-image: url('${m.posterPath}'); background-size: cover; background-position: center;` : '';
+            
             return `
                 <div class="layout-wrapper pt-32 pb-32">
                     <div class="w-full max-w-xl mx-auto bg-[#050505] border border-white/10 shadow-2xl shadow-black overflow-hidden relative group animate-fade-in">
-                        <div class="p-8 border-b border-white/5 flex justify-between items-start bg-gradient-to-b from-white/5 to-transparent">
-                            <div><span class="text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2 block">IMDb Rating</span><span class="text-6xl font-poster text-white">${m.rating}</span></div>
-                            <div class="text-right"><span class="block text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2">${m.year}</span><span class="inline-block px-3 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${m.lang || 'Unknown'}</span>${m.isAiGenerated ? '<span class="block mt-2 text-[8px] text-red-500 font-bold tracking-widest uppercase">✨ AI Pick</span>' : ''}</div>
-                        </div>
-                        <div class="py-16 px-8 text-center relative">
-                            <h1 class="text-5xl md:text-6xl font-poster font-bold text-white leading-[0.9] tracking-tight uppercase mb-8 break-words">${m.title}</h1>
-                            <p class="text-sm md:text-base text-white/60 font-light leading-relaxed max-w-sm mx-auto mb-10">"${m.desc}"</p>
-                            
-                            <!-- Feature 2: One-Tap Watch (Replaces Static Text) -->
-                             <div class="flex justify-center mb-8">
-                                ${provider ? 
-                                    `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all group">
-                                        <span class="text-[10px] uppercase tracking-widest text-white/40 group-hover:text-white/70">Watch on</span>
-                                        <span class="text-[10px] uppercase tracking-widest font-bold ${provider.color} flex items-center gap-1">${provider.name} <i data-lucide="external-link" class="w-3 h-3"></i></span>
-                                    </button>` : 
-                                    `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all">
-                                        <span class="text-[10px] uppercase tracking-widest text-white/40">Find Streaming</span><i data-lucide="search" class="w-3 h-3 text-white/40"></i>
-                                    </button>`
-                                }
+                         ${m.posterPath ? `<div class="absolute inset-0 z-0 opacity-20" style="${bgStyle}"></div>` : ''}
+                         <div class="relative z-10">
+                            <div class="p-8 border-b border-white/5 flex justify-between items-start bg-gradient-to-b from-black to-transparent">
+                                <div><span class="text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2 block">IMDb Rating</span><span class="text-6xl font-poster text-white">${m.rating}</span></div>
+                                <div class="text-right"><span class="block text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase mb-2">${m.year}</span><span class="inline-block px-3 py-1 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest">${m.lang || 'Unknown'}</span>${m.isAiGenerated ? '<span class="block mt-2 text-[8px] text-red-500 font-bold tracking-widest uppercase">✨ AI Pick</span>' : ''}</div>
                             </div>
+                            <div class="py-16 px-8 text-center relative bg-gradient-to-b from-transparent via-black to-black">
+                                <h1 class="text-5xl md:text-6xl font-poster font-bold text-white leading-[0.9] tracking-tight uppercase mb-8 break-words">${m.title}</h1>
+                                <p class="text-sm md:text-base text-white/60 font-light leading-relaxed max-w-sm mx-auto mb-10">"${m.desc}"</p>
+                                
+                                <!-- Feature 2: One-Tap Watch (Replaces Static Text) -->
+                                 <div class="flex justify-center mb-8">
+                                    ${provider ? 
+                                        `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all group">
+                                            <span class="text-[10px] uppercase tracking-widest text-white/40 group-hover:text-white/70">Watch on</span>
+                                            <span class="text-[10px] uppercase tracking-widest font-bold ${provider.color} flex items-center gap-1">${provider.name} <i data-lucide="external-link" class="w-3 h-3"></i></span>
+                                        </button>` : 
+                                        `<button onclick="window.openStreamingLink('${m.title}')" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/30 transition-all">
+                                            <span class="text-[10px] uppercase tracking-widest text-white/40">Find Streaming</span><i data-lucide="search" class="w-3 h-3 text-white/40"></i>
+                                        </button>`
+                                    }
+                                </div>
 
-                            <div class="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto mb-8">
-                                ${renderAiButton('pitch', 'sparkles', 'text-purple-400', 'Pitch')}
-                                ${renderAiButton('trivia', 'lightbulb', 'text-yellow-400', 'Trivia')}
-                                ${renderAiButton('quote', 'quote', 'text-green-400', 'Quote')}
-                                ${renderAiButton('roast', 'flame', 'text-orange-500', 'Roast')}
-                                ${renderAiButton('recast', 'users', 'text-blue-400', 'Recast')}
-                                ${renderAiButton('snack', 'popcorn', 'text-red-400', 'Snack')}
-                                ${renderAiButton('easteregg', 'eye', 'text-indigo-400', 'Detail')}
-                                ${renderAiButton('sequel', 'clapperboard', 'text-pink-500', 'Sequel')}
-                                ${renderAiButton('theory', 'brain', 'text-teal-500', 'Theory')}
+                                <div class="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto mb-8">
+                                    ${renderAiButton('pitch', 'sparkles', 'text-purple-400', 'Pitch')}
+                                    ${renderAiButton('trivia', 'lightbulb', 'text-yellow-400', 'Trivia')}
+                                    ${renderAiButton('quote', 'quote', 'text-green-400', 'Quote')}
+                                    ${renderAiButton('roast', 'flame', 'text-orange-500', 'Roast')}
+                                    ${renderAiButton('recast', 'users', 'text-blue-400', 'Recast')}
+                                    ${renderAiButton('snack', 'popcorn', 'text-red-400', 'Snack')}
+                                    ${renderAiButton('easteregg', 'eye', 'text-indigo-400', 'Detail')}
+                                    ${renderAiButton('sequel', 'clapperboard', 'text-pink-500', 'Sequel')}
+                                    ${renderAiButton('theory', 'brain', 'text-teal-500', 'Theory')}
+                                </div>
+                                ${state.aiContent ? `<div class="max-w-sm mx-auto animate-fade-in bg-white/5 p-6 border border-white/10 text-sm font-medium text-white/80 italic border-l-2 border-l-${getColorForType(state.aiType)} relative ai-shimmer text-left mb-8"><button onclick="window.clearAiContent()" class="absolute top-2 right-3 text-white/30 hover:text-white transition-colors">✕</button>"${state.aiContent}"</div>` : ''}
+                                <div class="flex gap-4 justify-center"><button onclick="window.handleTrailer('${m.trailerId}', '${m.title.replace(/'/g, "\\'")}', '${m.year}')" class="px-8 py-4 bg-white text-black font-poster tracking-wider text-sm hover:bg-gray-200 transition-colors">TRAILER</button><button onclick="window.handleSave()" class="px-8 py-4 border border-white/20 text-white font-poster tracking-wider text-sm hover:bg-white/10 transition-colors">${isSaved ? 'SAVED' : 'ARCHIVE'}</button></div>
                             </div>
-                            ${state.aiContent ? `<div class="max-w-sm mx-auto animate-fade-in bg-white/5 p-6 border border-white/10 text-sm font-medium text-white/80 italic border-l-2 border-l-${getColorForType(state.aiType)} relative ai-shimmer text-left mb-8"><button onclick="window.clearAiContent()" class="absolute top-2 right-3 text-white/30 hover:text-white transition-colors">✕</button>"${state.aiContent}"</div>` : ''}
-                            <div class="flex gap-4 justify-center"><button onclick="window.handleTrailer('${m.trailerId}', '${m.title.replace(/'/g, "\\'")}', '${m.year}')" class="px-8 py-4 bg-white text-black font-poster tracking-wider text-sm hover:bg-gray-200 transition-colors">TRAILER</button><button onclick="window.handleSave()" class="px-8 py-4 border border-white/20 text-white font-poster tracking-wider text-sm hover:bg-white/10 transition-colors">${isSaved ? 'SAVED' : 'ARCHIVE'}</button></div>
+                            <button onclick="window.triggerPick()" class="w-full py-5 bg-[#0a0a0a] border-t border-white/10 text-white/40 font-poster tracking-[0.2em] text-xs hover:text-white hover:bg-white/5 transition-colors relative z-10">SPIN AGAIN</button>
                         </div>
-                        <button onclick="window.triggerPick()" class="w-full py-5 bg-[#0a0a0a] border-t border-white/10 text-white/40 font-poster tracking-[0.2em] text-xs hover:text-white hover:bg-white/5 transition-colors">SPIN AGAIN</button>
                     </div>
                 </div>
             `;
@@ -1280,3 +1311,4 @@
     </script>
 </body>
 </html>
+
